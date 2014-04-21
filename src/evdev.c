@@ -361,6 +361,7 @@ evdev_process_relative(struct evdev_device *device,
 		       struct input_event *e, uint32_t time)
 {
 	struct libinput_device *base = &device->base;
+	int need_frame = 0;
 
 	switch (e->code) {
 	case REL_X:
@@ -382,6 +383,7 @@ evdev_process_relative(struct evdev_device *device,
 			time,
 			LIBINPUT_POINTER_AXIS_VERTICAL_SCROLL,
 			-1 * e->value * DEFAULT_AXIS_STEP_DISTANCE);
+		need_frame = 1;
 		break;
 	case REL_HWHEEL:
 		evdev_flush_pending_event(device, time);
@@ -395,12 +397,16 @@ evdev_process_relative(struct evdev_device *device,
 				time,
 				LIBINPUT_POINTER_AXIS_HORIZONTAL_SCROLL,
 				e->value * DEFAULT_AXIS_STEP_DISTANCE);
+			need_frame = 1;
 			break;
 		default:
 			break;
 
 		}
 	}
+
+	if (need_frame)
+		pointer_notify_axis_frame(base, time);
 }
 
 static inline void
