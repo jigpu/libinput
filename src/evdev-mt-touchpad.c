@@ -451,8 +451,8 @@ static void
 tp_post_twofinger_scroll(struct tp_dispatch *tp, uint32_t time)
 {
 	struct tp_touch *t;
-	int nchanged = 0;
-	double dx = 0, dy =0;
+	int nchanged = 0, need_frame = 0;
+	double dx = 0, dy = 0;
 	double tmpx, tmpy;
 
 	tp_for_each_touch(tp, t) {
@@ -495,6 +495,7 @@ tp_post_twofinger_scroll(struct tp_dispatch *tp, uint32_t time)
 				    time,
 				    LIBINPUT_POINTER_AXIS_VERTICAL_SCROLL,
 				    li_fixed_from_double(dy));
+		need_frame = 1;
 	}
 
 	if (dx != 0.0 &&
@@ -503,7 +504,11 @@ tp_post_twofinger_scroll(struct tp_dispatch *tp, uint32_t time)
 				    time,
 				    LIBINPUT_POINTER_AXIS_HORIZONTAL_SCROLL,
 				    li_fixed_from_double(dx));
+		need_frame = 1;
 	}
+
+	if (need_frame)
+		pointer_notify_axis_frame(&tp->device->base, time);
 }
 
 static int
@@ -530,6 +535,9 @@ tp_post_scroll_events(struct tp_dispatch *tp, uint32_t time)
 						    time,
 						    LIBINPUT_POINTER_AXIS_HORIZONTAL_SCROLL,
 						    0);
+			if (tp->scroll.direction)
+				pointer_notify_axis_frame(&tp->device->base,
+							  time);
 		}
 	} else {
 		tp_post_twofinger_scroll(tp, time);
