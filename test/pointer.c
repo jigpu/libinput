@@ -138,6 +138,8 @@ test_wheel_event(struct litest_device *dev, int which, int amount)
 	const int scroll_step = 10;
 	int expected = amount * scroll_step;
 
+	litest_drain_events(li);
+
 	/* mouse scroll wheels are 'upside down' */
 	if (which == REL_WHEEL)
 		amount *= -1;
