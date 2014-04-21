@@ -162,6 +162,10 @@ pointer_notify_axis(struct libinput_device *device,
 		    li_fixed_t value);
 
 void
+pointer_notify_axis_frame(struct libinput_device *device,
+			  uint32_t time);
+
+void
 touch_notify_touch_down(struct libinput_device *device,
 			uint32_t time,
 			int32_t slot,
