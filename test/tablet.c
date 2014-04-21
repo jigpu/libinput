@@ -73,10 +73,58 @@ START_TEST(proximity_in_out)
 }
 END_TEST
 
+START_TEST(motion)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+	struct libinput_event_pointer *pointer_event;
+	struct libinput_event *event;
+	int have_motion = 0;
+	struct axis_replacement axes[] = {
+		{ ABS_DISTANCE, 10 },
+		{ -1, -1 }
+	};
+
+	litest_drain_events(dev->libinput);
+
+	litest_tablet_proximity_in(dev, 10, 10, axes);
+	libinput_dispatch(li);
+
+	while ((event = libinput_get_event(li))) {
+		if (libinput_event_get_type(event) == LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE) {
+			have_motion++;
+		}
+		libinput_event_destroy(event);
+	}
+	ck_assert_int_eq(have_motion, 1);
+
+	litest_tablet_motion(dev, 20, 10, axes);
+	libinput_dispatch(li);
+
+	while ((event = libinput_get_event(li))) {
+		if (libinput_event_get_type(event) == LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE) {
+			have_motion++;
+		}
+		libinput_event_destroy(event);
+	}
+	ck_assert_int_eq(have_motion, 2);
+
+	/* Proximity out must not emit motion events */
+	litest_tablet_proximity_out(dev);
+	libinput_dispatch(li);
+
+	while ((event = libinput_get_event(li))) {
+		ck_assert(libinput_event_get_type(event) != LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE);
+		libinput_event_destroy(event);
+	}
+}
+END_TEST
+
 int
 main(int argc, char **argv)
 {
 	litest_add("tablet:proximity-in-out", proximity_in_out, LITEST_TABLET, LITEST_ANY);
+	litest_add("tablet:motion", motion, LITEST_TABLET, LITEST_ANY);
 
 	return litest_run(argc, argv);
 }
