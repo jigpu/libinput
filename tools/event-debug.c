@@ -200,6 +200,9 @@ print_event_header(struct libinput_event *ev)
 	case LIBINPUT_EVENT_POINTER_AXIS:
 		type = "POINTER_AXIS";
 		break;
+	case LIBINPUT_EVENT_POINTER_AXIS_FRAME:
+		type = "POINTER_AXIS_FRAME";
+		break;
 	case LIBINPUT_EVENT_TOUCH_DOWN:
 		type = "TOUCH_DOWN";
 		break;
@@ -320,6 +323,15 @@ print_axis_event(struct libinput_event *ev)
 }
 
 static void
+print_axis_frame_event(struct libinput_event *ev)
+{
+	struct libinput_event_pointer *p = libinput_event_get_pointer_event(ev);
+
+	print_event_time(libinput_event_pointer_get_time(p));
+	printf("\n");
+}
+
+static void
 print_touch_event_without_coords(struct libinput_event *ev)
 {
 	struct libinput_event_touch *t = libinput_event_get_touch_event(ev);
@@ -375,6 +387,9 @@ handle_and_print_events(struct libinput *li)
 			break;
 		case LIBINPUT_EVENT_POINTER_AXIS:
 			print_axis_event(ev);
+			break;
+		case LIBINPUT_EVENT_POINTER_AXIS_FRAME:
+			print_axis_frame_event(ev);
 			break;
 		case LIBINPUT_EVENT_TOUCH_DOWN:
 			print_touch_event_with_coords(ev);
