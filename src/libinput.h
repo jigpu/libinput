@@ -157,6 +157,24 @@ enum libinput_pointer_axis {
 };
 
 /**
+ * @ingroup device
+ *
+ * Available tool types for a device. It must have the @ref
+ * LIBINPUT_DEVICE_CAP_STYLUS capability.
+ */
+enum libinput_tool {
+	LIBINPUT_TOOL_NONE = -1,
+	LIBINPUT_TOOL_PEN = 0x140, /* Matches BTN_TOOL_PEN */
+	LIBINPUT_TOOL_ERASER,
+	LIBINPUT_TOOL_BRUSH,
+	LIBINPUT_TOOL_PENCIL,
+	LIBINPUT_TOOL_AIRBRUSH,
+	LIBINPUT_TOOL_FINGER,
+	LIBINPUT_TOOL_MOUSE,
+	LIBINPUT_TOOL_LENS
+};
+
+/**
  * @ingroup base
  *
  * Event type for events returned by libinput_get_event().
@@ -196,6 +214,12 @@ enum libinput_event_type {
 	 * event has no coordinate information attached.
 	 */
 	LIBINPUT_EVENT_POINTER_AXIS_FRAME,
+
+	/**
+	 * Signals that a device with the @ref LIBINPUT_DEVICE_CAP_STYLUS
+	 * capability has changed its tool.
+	 */
+	LIBINPUT_EVENT_POINTER_TOOL_UPDATE,
 
 	LIBINPUT_EVENT_TOUCH_DOWN = 500,
 	LIBINPUT_EVENT_TOUCH_UP,
@@ -625,6 +649,36 @@ libinput_event_pointer_get_seat_button_count(
  */
 enum libinput_pointer_axis
 libinput_event_pointer_get_axis(struct libinput_event_pointer *event);
+
+/**
+ * @ingroup event_pointer
+ *
+ * Return the tool mode set by this event.
+ * For pointer events that are not of type @ref LIBINPUT_EVENT_POINTER_TOOL_UPDATE,
+ * this function returns @ref LIBINPUT_TOOL_NONE.
+ *
+ * @note It is an application bug to call this function for events other than
+ * @ref LIBINPUT_EVENT_POINTER_TOOL_UPDATE.
+ *
+ * @return The new tool triggering this event
+ */
+enum libinput_tool
+libinput_event_pointer_get_tool(struct libinput_event_pointer *event);
+
+/**
+ * @ingroup event_pointer
+ *
+ * Return the tool serial set by this event.
+ * For pointer events that are not of type @ref LIBINPUT_EVENT_POINTER_TOOL_UPDATE,
+ * this function returns @ref LIBINPUT_TOOL_NONE.
+ *
+ * @note It is an application bug to call this function for events other than
+ * @ref LIBINPUT_EVENT_POINTER_TOOL_UPDATE.
+ *
+ * @return The new tool serial triggering this event
+ */
+uint32_t
+libinput_event_pointer_get_tool_serial(struct libinput_event_pointer *event);
 
 /**
  * @ingroup event_pointer
