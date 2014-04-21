@@ -35,6 +35,63 @@
 #define tablet_get_disabled_buttons(tablet,field) \
 	(tablet->prev_state.field & ~(tablet->state.field))
 
+static struct axis_info *
+tablet_get_axis(struct tablet_dispatch *tablet,
+		int32_t evcode)
+{
+	int pos;
+
+	for (pos = 0; pos < tablet->n_axes; pos++) {
+		if (tablet->axes[pos].code == evcode)
+			return &tablet->axes[pos];
+	}
+
+	return NULL;
+}
+
+static int
+tablet_add_axis(struct tablet_dispatch *tablet,
+		struct evdev_device *device,
+		uint32_t evcode,
+		uint32_t axis)
+{
+	const struct input_absinfo *absinfo;
+	int current;
+
+	if (tablet->n_axes == MAX_AXES)
+		return 0;
+
+	if (!(absinfo = libevdev_get_abs_info(device->evdev, evcode)))
+		return 0;
+
+	current = tablet->n_axes++;
+	tablet->axes[current].code = evcode;
+	tablet->axes[current].axis = axis;
+	tablet->axes[current].abs = *absinfo;
+	tablet->axes[current].updated = 0;
+
+	return 1;
+}
+
+static void
+tablet_update_axis(struct tablet_dispatch *tablet,
+		   int32_t code,
+		   int32_t value)
+{
+	struct axis_info *axis_info;
+
+	if (!(axis_info = tablet_get_axis(tablet, code)))
+		return;
+
+	value = max(axis_info->abs.minimum, min(value, axis_info->abs.maximum));
+
+	if (value == axis_info->abs.value)
+		return;
+
+	axis_info->abs.value = value;
+	axis_info->updated = 1;
+}
+
 static void
 tablet_process_absolute(struct tablet_dispatch *tablet,
 			struct evdev_device *device,
@@ -49,6 +106,17 @@ tablet_process_absolute(struct tablet_dispatch *tablet,
 	case ABS_Y:
 		device->abs.y = e->value;
 		tablet_set_status(tablet, TABLET_UPDATED);
+		break;
+	case ABS_PRESSURE:
+	case ABS_DISTANCE:
+	case ABS_TILT_X:
+	case ABS_TILT_Y:
+	case ABS_RX:
+	case ABS_RY:
+	case ABS_RZ:
+	case ABS_WHEEL:
+	case ABS_THROTTLE:
+		tablet_update_axis(tablet, e->code, e->value);
 		break;
 	default:
 		log_info("Unhandled ABS event code 0x%x\n", e->code);
@@ -171,6 +239,43 @@ tablet_check_notify_tool(struct tablet_dispatch *tablet,
 		base, time, tablet->state.tool, tablet->state.tool_serial);
 }
 
+static double
+normalize_axis(const struct axis_info *axis_info)
+{
+	double range = axis_info->abs.maximum - axis_info->abs.minimum;
+	double value = (axis_info->abs.value + axis_info->abs.minimum) / range;
+
+	return value;
+}
+
+static void
+tablet_notify_axes(struct tablet_dispatch *tablet,
+		   struct evdev_device *device,
+		   uint32_t time)
+{
+	struct libinput_device *base = &device->base;
+	int i, need_frame = 0;
+
+	for (i = 0; i < tablet->n_axes; i++) {
+		struct axis_info *axis = &tablet->axes[i];
+		double value;
+
+		if (!axis->updated)
+			continue;
+
+		need_frame = 1;
+		axis->updated = 0;
+		value = normalize_axis(axis);
+		pointer_notify_axis(base,
+				    time,
+				    axis->axis,
+				    li_fixed_from_double(value));
+	}
+
+	if (need_frame)
+		pointer_notify_axis_frame(base, time);
+}
+
 static void
 tablet_notify_button_mask(struct tablet_dispatch *tablet,
 			  struct evdev_device *device,
@@ -253,6 +358,8 @@ tablet_flush(struct tablet_dispatch *tablet,
 			pointer_notify_motion_absolute(base, time, x, y);
 			tablet_unset_status(tablet, TABLET_UPDATED);
 		}
+
+		tablet_notify_axes(tablet, device, time);
 	}
 
 	/* post-update notifications */
