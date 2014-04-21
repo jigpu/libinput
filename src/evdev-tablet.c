@@ -216,6 +216,23 @@ tablet_process_misc(struct tablet_dispatch *tablet,
 }
 
 static void
+sanitize_tablet_axes(struct tablet_dispatch *tablet)
+{
+	struct axis_info *distance, *pressure;
+
+	distance = tablet_get_axis(tablet, ABS_DISTANCE);
+	pressure = tablet_get_axis(tablet, ABS_PRESSURE);
+
+	if (distance && pressure && distance->updated && pressure->updated) {
+		/* Keep distance and pressure mutually exclusive */
+		distance->updated = 0;
+	} else if (pressure && pressure->updated &&
+		   !tablet_has_status(tablet, TABLET_HAS_CONTACT)) {
+		pressure->updated = 0;
+	}
+}
+
+static void
 tablet_check_notify_tool(struct tablet_dispatch *tablet,
 			 struct evdev_device *device,
 			 uint32_t time,
@@ -360,6 +377,8 @@ tablet_flush(struct tablet_dispatch *tablet,
 	tablet_notify_buttons(tablet, device, time, 0);
 
 	if (tablet->state.tool != LIBINPUT_TOOL_NONE) {
+		sanitize_tablet_axes(tablet);
+
 		if (tablet_has_status(tablet, TABLET_UPDATED)) {
 			/* FIXME: apply hysteresis, calibration */
 			x = li_fixed_from_int(device->abs.x);
@@ -426,6 +445,16 @@ static void
 tablet_init_axes(struct tablet_dispatch *tablet,
 		 struct evdev_device *device)
 {
+	if (libevdev_has_event_code(device->evdev, EV_ABS, ABS_DISTANCE)) {
+		tablet_add_axis(tablet, device, ABS_DISTANCE,
+				LIBINPUT_POINTER_AXIS_DISTANCE);
+	}
+
+	if (libevdev_has_event_code(device->evdev, EV_ABS, ABS_PRESSURE)) {
+		tablet_add_axis(tablet, device, ABS_PRESSURE,
+				LIBINPUT_POINTER_AXIS_PRESSURE);
+	}
+
 	if (libevdev_has_event_code(device->evdev, EV_ABS, ABS_TILT_X) &&
 	    libevdev_has_event_code(device->evdev, EV_ABS, ABS_TILT_Y)) {
 		tablet_add_axis(tablet, device, ABS_TILT_X,
