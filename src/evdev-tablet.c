@@ -52,6 +52,85 @@ tablet_process_absolute(struct tablet_dispatch *tablet,
 }
 
 static void
+tablet_update_tool(struct tablet_dispatch *tablet,
+		   int32_t tool,
+		   int32_t enabled)
+{
+	assert(tool != LIBINPUT_TOOL_NONE);
+
+	if (enabled && tool != tablet->state.tool) {
+		tablet->state.tool = tool;
+		tablet_set_status(tablet, TABLET_INTERACTED);
+	} else if (!enabled && tool == tablet->state.tool) {
+		tablet->state.tool = LIBINPUT_TOOL_NONE;
+		tablet_unset_status(tablet, TABLET_INTERACTED);
+	}
+}
+
+static void
+tablet_process_key(struct tablet_dispatch *tablet,
+		   struct evdev_device *device,
+		   struct input_event *e,
+		   uint32_t time)
+{
+	switch (e->code) {
+	case BTN_TOOL_PEN:
+	case BTN_TOOL_RUBBER:
+	case BTN_TOOL_BRUSH:
+	case BTN_TOOL_PENCIL:
+	case BTN_TOOL_AIRBRUSH:
+	case BTN_TOOL_FINGER:
+	case BTN_TOOL_MOUSE:
+	case BTN_TOOL_LENS:
+		/* These codes have an equivalent libinput_tool value */
+		tablet_update_tool(tablet, e->code, e->value);
+		break;
+	default:
+		break;
+	}
+}
+
+static void
+tablet_process_misc(struct tablet_dispatch *tablet,
+		    struct evdev_device *device,
+		    struct input_event *e,
+		    uint32_t time)
+{
+	switch (e->code) {
+	case MSC_SERIAL:
+		tablet->state.tool_serial = e->value;
+		break;
+	default:
+		log_info("Unhandled MSC event code 0x%x\n", e->code);
+		break;
+	}
+}
+
+static void
+tablet_check_notify_tool(struct tablet_dispatch *tablet,
+			 struct evdev_device *device,
+			 uint32_t time,
+			 int post_check)
+{
+	struct libinput_device *base = &device->base;
+
+	if (tablet->state.tool == tablet->prev_state.tool)
+		return;
+
+	if (tablet->state.tool == LIBINPUT_TOOL_NONE) {
+		/* Wait for post-check */
+		if (post_check)
+			return;
+	} else if (post_check) {
+		/* Already handled in pre-check */
+		return;
+	}
+
+	pointer_notify_tool_update(
+		base, time, tablet->state.tool, tablet->state.tool_serial);
+}
+
+static void
 tablet_flush(struct tablet_dispatch *tablet,
 	     struct evdev_device *device,
 	     uint32_t time)
@@ -59,14 +138,25 @@ tablet_flush(struct tablet_dispatch *tablet,
 	struct libinput_device *base = &device->base;
 	li_fixed_t x, y;
 
-	if (tablet_has_status(tablet, TABLET_UPDATED)) {
-		/* FIXME: apply hysteresis, calibration */
-		x = li_fixed_from_int(device->abs.x);
-		y = li_fixed_from_int(device->abs.y);
+	/* pre-update notifications */
+	tablet_check_notify_tool(tablet, device, time, 0);
 
-		pointer_notify_motion_absolute(base, time, x, y);
-		tablet_unset_status(tablet, TABLET_UPDATED);
+	if (tablet->state.tool != LIBINPUT_TOOL_NONE) {
+		if (tablet_has_status(tablet, TABLET_UPDATED)) {
+			/* FIXME: apply hysteresis, calibration */
+			x = li_fixed_from_int(device->abs.x);
+			y = li_fixed_from_int(device->abs.y);
+
+			pointer_notify_motion_absolute(base, time, x, y);
+			tablet_unset_status(tablet, TABLET_UPDATED);
+		}
 	}
+
+	/* post-update notifications */
+	tablet_check_notify_tool(tablet, device, time, 1);
+
+	/* replace previous state */
+	tablet->prev_state = tablet->state;
 }
 
 static void
@@ -81,6 +171,12 @@ tablet_process(struct evdev_dispatch *dispatch,
 	switch (e->type) {
 	case EV_ABS:
 		tablet_process_absolute(tablet, device, e, time);
+		break;
+	case EV_KEY:
+		tablet_process_key(tablet, device, e, time);
+		break;
+	case EV_MSC:
+		tablet_process_misc(tablet, device, e, time);
 		break;
 	case EV_SYN:
 		tablet_flush(tablet, device, time);
@@ -112,6 +208,7 @@ tablet_init(struct tablet_dispatch *tablet,
 	tablet->base.interface = &tablet_interface;
 	tablet->device = device;
 	tablet->status = TABLET_NONE;
+	tablet->state.tool = LIBINPUT_TOOL_NONE;
 
 	return 0;
 }
