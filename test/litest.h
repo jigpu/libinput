@@ -42,6 +42,7 @@ enum litest_device_type {
 	LITEST_TRACKPOINT,
 	LITEST_MOUSE,
 	LITEST_WACOM_TOUCH,
+	LITEST_WACOM_TABLET,
 };
 
 enum litest_device_feature {
@@ -55,6 +56,7 @@ enum litest_device_feature {
 	LITEST_WHEEL = 1 << 5,
 	LITEST_TOUCH = 1 << 6,
 	LITEST_SINGLE_TOUCH = 1 << 7,
+	LITEST_TABLET = 1 << 8,
 };
 
 struct litest_device {
@@ -66,7 +68,10 @@ struct litest_device {
 	struct litest_device_interface *interface;
 };
 
-struct libinput *litest_create_context(void);
+struct axis_replacement {
+	int32_t evcode;
+	int32_t value;
+};
 
 void litest_add(const char *name, void *func,
 		enum litest_device_feature required_feature,
@@ -116,6 +121,13 @@ void litest_touch_move_to(struct litest_device *d,
 			  int x_from, int y_from,
 			  int x_to, int y_to,
 			  int steps);
+void litest_tablet_proximity_in(struct litest_device *d,
+				int x, int y,
+				struct axis_replacement *axes);
+void litest_tablet_proximity_out(struct litest_device *d);
+void litest_tablet_motion(struct litest_device *d,
+			  int x, int y,
+			  struct axis_replacement *axes);
 void litest_button_click(struct litest_device *d,
 			 unsigned int button,
 			 bool is_press);
