@@ -29,11 +29,21 @@
 enum tablet_status {
 	TABLET_NONE = 0,
 	TABLET_UPDATED = 1 << 0,
+	TABLET_INTERACTED = 1 << 1,
+};
+
+struct device_state {
+	enum libinput_tool tool;
+	int32_t tool_serial;
 };
 
 struct tablet_dispatch {
 	struct evdev_dispatch base;
 	struct evdev_device *device;
+
+	struct device_state state;
+	struct device_state prev_state;
+
 	enum tablet_status status;
 };
 
