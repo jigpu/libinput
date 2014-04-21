@@ -246,6 +246,16 @@ normalize_axis(const struct axis_info *axis_info)
 	double range = axis_info->abs.maximum - axis_info->abs.minimum;
 	double value = (axis_info->abs.value + axis_info->abs.minimum) / range;
 
+	switch (axis_info->axis) {
+	case LIBINPUT_POINTER_AXIS_TILT_VERTICAL:
+	case LIBINPUT_POINTER_AXIS_TILT_HORIZONTAL:
+		/* Map to the (-1,1) range */
+		value = (value * 2) - 1;
+		break;
+	default:
+		break;
+	}
+
 	return value;
 }
 
@@ -413,6 +423,19 @@ static struct evdev_dispatch_interface tablet_interface = {
 	tablet_destroy
 };
 
+static void
+tablet_init_axes(struct tablet_dispatch *tablet,
+		 struct evdev_device *device)
+{
+	if (libevdev_has_event_code(device->evdev, EV_ABS, ABS_TILT_X) &&
+	    libevdev_has_event_code(device->evdev, EV_ABS, ABS_TILT_Y)) {
+		tablet_add_axis(tablet, device, ABS_TILT_X,
+				LIBINPUT_POINTER_AXIS_TILT_HORIZONTAL);
+		tablet_add_axis(tablet, device, ABS_TILT_Y,
+				LIBINPUT_POINTER_AXIS_TILT_VERTICAL);
+	}
+}
+
 static int
 tablet_init(struct tablet_dispatch *tablet,
 	    struct evdev_device *device)
@@ -421,6 +444,8 @@ tablet_init(struct tablet_dispatch *tablet,
 	tablet->device = device;
 	tablet->status = TABLET_NONE;
 	tablet->state.tool = LIBINPUT_TOOL_NONE;
+
+	tablet_init_axes(tablet, device);
 
 	return 0;
 }
