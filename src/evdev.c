@@ -853,6 +853,8 @@ evdev_device_has_capability(struct evdev_device *device,
 		return !!(device->seat_caps & EVDEV_DEVICE_KEYBOARD);
 	case LIBINPUT_DEVICE_CAP_TOUCH:
 		return !!(device->seat_caps & EVDEV_DEVICE_TOUCH);
+	case LIBINPUT_DEVICE_CAP_STYLUS:
+		return !!(device->seat_caps & EVDEV_DEVICE_TABLET);
 	default:
 		return 0;
 	}
