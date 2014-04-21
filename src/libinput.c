@@ -68,6 +68,8 @@ struct libinput_event_pointer {
 	enum libinput_pointer_button_state state;
 	enum libinput_pointer_axis axis;
 	li_fixed_t value;
+	enum libinput_tool tool;
+	uint32_t tool_serial;
 };
 
 struct libinput_event_touch {
@@ -178,6 +180,7 @@ libinput_event_get_pointer_event(struct libinput_event *event)
 	case LIBINPUT_EVENT_POINTER_BUTTON:
 	case LIBINPUT_EVENT_POINTER_AXIS:
 	case LIBINPUT_EVENT_POINTER_AXIS_FRAME:
+	case LIBINPUT_EVENT_POINTER_TOOL_UPDATE:
 		return (struct libinput_event_pointer *) event;
 	case LIBINPUT_EVENT_TOUCH_DOWN:
 	case LIBINPUT_EVENT_TOUCH_UP:
@@ -206,6 +209,7 @@ libinput_event_get_keyboard_event(struct libinput_event *event)
 	case LIBINPUT_EVENT_POINTER_BUTTON:
 	case LIBINPUT_EVENT_POINTER_AXIS:
 	case LIBINPUT_EVENT_POINTER_AXIS_FRAME:
+	case LIBINPUT_EVENT_POINTER_TOOL_UPDATE:
 	case LIBINPUT_EVENT_TOUCH_DOWN:
 	case LIBINPUT_EVENT_TOUCH_UP:
 	case LIBINPUT_EVENT_TOUCH_MOTION:
@@ -231,6 +235,7 @@ libinput_event_get_touch_event(struct libinput_event *event)
 	case LIBINPUT_EVENT_POINTER_BUTTON:
 	case LIBINPUT_EVENT_POINTER_AXIS:
 	case LIBINPUT_EVENT_POINTER_AXIS_FRAME:
+	case LIBINPUT_EVENT_POINTER_TOOL_UPDATE:
 		break;
 	case LIBINPUT_EVENT_TOUCH_DOWN:
 	case LIBINPUT_EVENT_TOUCH_UP:
@@ -258,6 +263,7 @@ libinput_event_get_device_notify_event(struct libinput_event *event)
 	case LIBINPUT_EVENT_POINTER_BUTTON:
 	case LIBINPUT_EVENT_POINTER_AXIS:
 	case LIBINPUT_EVENT_POINTER_AXIS_FRAME:
+	case LIBINPUT_EVENT_POINTER_TOOL_UPDATE:
 	case LIBINPUT_EVENT_TOUCH_DOWN:
 	case LIBINPUT_EVENT_TOUCH_UP:
 	case LIBINPUT_EVENT_TOUCH_MOTION:
@@ -369,6 +375,18 @@ LIBINPUT_EXPORT enum libinput_pointer_axis
 libinput_event_pointer_get_axis(struct libinput_event_pointer *event)
 {
 	return event->axis;
+}
+
+LIBINPUT_EXPORT enum libinput_tool
+libinput_event_pointer_get_tool(struct libinput_event_pointer *event)
+{
+	return event->tool;
+}
+
+LIBINPUT_EXPORT uint32_t
+libinput_event_pointer_get_tool_serial(struct libinput_event_pointer *event)
+{
+	return event->tool_serial;
 }
 
 LIBINPUT_EXPORT li_fixed_t
@@ -932,6 +950,29 @@ pointer_notify_axis_frame(struct libinput_device *device,
 	post_device_event(device,
 			  LIBINPUT_EVENT_POINTER_AXIS_FRAME,
 			  &axis_frame_event->base);
+}
+
+void
+pointer_notify_tool_update(struct libinput_device *device,
+			   uint32_t time,
+			   enum libinput_tool tool,
+			   uint32_t serial)
+{
+	struct libinput_event_pointer *tool_update_event;
+
+	tool_update_event = zalloc(sizeof *tool_update_event);
+	if (!tool_update_event)
+		return;
+
+	*tool_update_event = (struct libinput_event_pointer) {
+		.time = time,
+		.tool = tool,
+		.tool_serial = serial,
+	};
+
+	post_device_event(device,
+			  LIBINPUT_EVENT_POINTER_TOOL_UPDATE,
+			  &tool_update_event->base);
 }
 
 void

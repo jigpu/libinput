@@ -164,6 +164,12 @@ pointer_notify_axis_frame(struct libinput_device *device,
 			  uint32_t time);
 
 void
+pointer_notify_tool_update(struct libinput_device *device,
+			   uint32_t time,
+			   enum libinput_tool tool,
+			   uint32_t serial);
+
+void
 touch_notify_touch_down(struct libinput_device *device,
 			uint32_t time,
 			int32_t slot,
