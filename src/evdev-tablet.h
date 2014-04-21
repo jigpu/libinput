@@ -25,12 +25,23 @@
 #define EVDEV_TABLET_H
 
 #include "evdev.h"
+#include <stdbool.h>
+
+/* Completely unscientific, but there should be plenty of room most commonly */
+#define MAX_AXES 20
 
 enum tablet_status {
 	TABLET_NONE = 0,
 	TABLET_UPDATED = 1 << 0,
 	TABLET_INTERACTED = 1 << 1,
 	TABLET_STYLUS_IN_CONTACT = 1 << 2,
+};
+
+struct axis_info {
+	int32_t code;
+	int32_t axis;
+	bool updated;
+	struct input_absinfo abs;
 };
 
 struct device_state {
@@ -47,7 +58,9 @@ struct tablet_dispatch {
 	struct device_state state;
 	struct device_state prev_state;
 
+	struct axis_info axes[MAX_AXES];
 	enum tablet_status status;
+	int naxes;
 };
 
 #endif
