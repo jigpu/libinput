@@ -203,6 +203,9 @@ print_event_header(struct libinput_event *ev)
 	case LIBINPUT_EVENT_POINTER_AXIS_FRAME:
 		type = "POINTER_AXIS_FRAME";
 		break;
+	case LIBINPUT_EVENT_POINTER_TOOL_UPDATE:
+		type = "POINTER_TOOL_UPDATE";
+		break;
 	case LIBINPUT_EVENT_TOUCH_DOWN:
 		type = "TOUCH_DOWN";
 		break;
@@ -344,6 +347,49 @@ print_axis_frame_event(struct libinput_event *ev)
 }
 
 static void
+print_tool_update_event(struct libinput_event *ev)
+{
+	struct libinput_event_pointer *p = libinput_event_get_pointer_event(ev);
+	const char *tool;
+
+	switch (libinput_event_pointer_get_tool(p)) {
+	case LIBINPUT_TOOL_NONE:
+		tool = "none";
+		break;
+	case LIBINPUT_TOOL_PEN:
+		tool = "pen";
+		break;
+	case LIBINPUT_TOOL_ERASER:
+		tool = "eraser";
+		break;
+	case LIBINPUT_TOOL_BRUSH:
+		tool = "brush";
+		break;
+	case LIBINPUT_TOOL_PENCIL:
+		tool = "pencil";
+		break;
+	case LIBINPUT_TOOL_AIRBRUSH:
+		tool = "airbrush";
+		break;
+	case LIBINPUT_TOOL_FINGER:
+		tool = "finger";
+		break;
+	case LIBINPUT_TOOL_MOUSE:
+		tool = "mouse";
+		break;
+	case LIBINPUT_TOOL_LENS:
+		tool = "lens";
+		break;
+	default:
+		abort();
+	}
+
+	print_event_time(libinput_event_pointer_get_time(p));
+	printf("%s (0x%x)", tool, libinput_event_pointer_get_tool_serial(p));
+	printf("\n");
+}
+
+static void
 print_touch_event_without_coords(struct libinput_event *ev)
 {
 	struct libinput_event_touch *t = libinput_event_get_touch_event(ev);
@@ -402,6 +448,9 @@ handle_and_print_events(struct libinput *li)
 			break;
 		case LIBINPUT_EVENT_POINTER_AXIS_FRAME:
 			print_axis_frame_event(ev);
+			break;
+		case LIBINPUT_EVENT_POINTER_TOOL_UPDATE:
+			print_tool_update_event(ev);
 			break;
 		case LIBINPUT_EVENT_TOUCH_DOWN:
 			print_touch_event_with_coords(ev);
