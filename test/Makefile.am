@@ -16,6 +16,7 @@ liblitest_la_SOURCES = \
 	litest-synaptics-st.c \
 	litest-trackpoint.c \
 	litest-wacom-bamboo-tablet.c \
+	litest-wacom-cintiq-tablet.c \
 	litest-wacom-touch.c \
 	litest.c
 
