@@ -552,6 +552,9 @@ touchpad_update_state(struct touchpad_dispatch *touchpad, uint32_t time)
 					time,
 					LIBINPUT_POINTER_AXIS_VERTICAL_SCROLL,
 					li_fixed_from_double(dy));
+
+			if (dx != 0.0 || dy != 0.0)
+				pointer_notify_axis_frame(base, time);
 		}
 	}
 
