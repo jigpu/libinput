@@ -311,6 +311,18 @@ print_axis_event(struct libinput_event *ev)
 	case LIBINPUT_POINTER_AXIS_HORIZONTAL_SCROLL:
 		ax = "hscroll";
 		break;
+	case LIBINPUT_POINTER_AXIS_DISTANCE:
+		ax = "distance";
+		break;
+	case LIBINPUT_POINTER_AXIS_PRESSURE:
+		ax = "pressure";
+		break;
+	case LIBINPUT_POINTER_AXIS_VERTICAL_TILT:
+		ax = "ytilt";
+		break;
+	case LIBINPUT_POINTER_AXIS_HORIZONTAL_TILT:
+		ax = "xtilt";
+		break;
 	default:
 		abort();
 	}
