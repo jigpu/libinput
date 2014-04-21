@@ -146,6 +146,11 @@ enum libinput_event_type {
 	LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE,
 	LIBINPUT_EVENT_POINTER_BUTTON,
 	LIBINPUT_EVENT_POINTER_AXIS,
+	/**
+	 * Signals the end of a set of axis changes on the pointer. This
+	 * event has no coordinate information attached.
+	 */
+	LIBINPUT_EVENT_POINTER_AXIS_FRAME,
 
 	LIBINPUT_EVENT_TOUCH_DOWN = 500,
 	LIBINPUT_EVENT_TOUCH_UP,

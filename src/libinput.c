@@ -177,6 +177,7 @@ libinput_event_get_pointer_event(struct libinput_event *event)
 	case LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE:
 	case LIBINPUT_EVENT_POINTER_BUTTON:
 	case LIBINPUT_EVENT_POINTER_AXIS:
+	case LIBINPUT_EVENT_POINTER_AXIS_FRAME:
 		return (struct libinput_event_pointer *) event;
 	case LIBINPUT_EVENT_TOUCH_DOWN:
 	case LIBINPUT_EVENT_TOUCH_UP:
@@ -204,6 +205,7 @@ libinput_event_get_keyboard_event(struct libinput_event *event)
 	case LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE:
 	case LIBINPUT_EVENT_POINTER_BUTTON:
 	case LIBINPUT_EVENT_POINTER_AXIS:
+	case LIBINPUT_EVENT_POINTER_AXIS_FRAME:
 	case LIBINPUT_EVENT_TOUCH_DOWN:
 	case LIBINPUT_EVENT_TOUCH_UP:
 	case LIBINPUT_EVENT_TOUCH_MOTION:
@@ -228,6 +230,7 @@ libinput_event_get_touch_event(struct libinput_event *event)
 	case LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE:
 	case LIBINPUT_EVENT_POINTER_BUTTON:
 	case LIBINPUT_EVENT_POINTER_AXIS:
+	case LIBINPUT_EVENT_POINTER_AXIS_FRAME:
 		break;
 	case LIBINPUT_EVENT_TOUCH_DOWN:
 	case LIBINPUT_EVENT_TOUCH_UP:
@@ -254,6 +257,7 @@ libinput_event_get_device_notify_event(struct libinput_event *event)
 	case LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE:
 	case LIBINPUT_EVENT_POINTER_BUTTON:
 	case LIBINPUT_EVENT_POINTER_AXIS:
+	case LIBINPUT_EVENT_POINTER_AXIS_FRAME:
 	case LIBINPUT_EVENT_TOUCH_DOWN:
 	case LIBINPUT_EVENT_TOUCH_UP:
 	case LIBINPUT_EVENT_TOUCH_MOTION:
@@ -909,6 +913,25 @@ pointer_notify_axis(struct libinput_device *device,
 	post_device_event(device,
 			  LIBINPUT_EVENT_POINTER_AXIS,
 			  &axis_event->base);
+}
+
+void
+pointer_notify_axis_frame(struct libinput_device *device,
+			  uint32_t time)
+{
+	struct libinput_event_pointer *axis_frame_event;
+
+	axis_frame_event = zalloc(sizeof *axis_frame_event);
+	if (!axis_frame_event)
+		return;
+
+	*axis_frame_event = (struct libinput_event_pointer) {
+		.time = time,
+	};
+
+	post_device_event(device,
+			  LIBINPUT_EVENT_POINTER_AXIS_FRAME,
+			  &axis_frame_event->base);
 }
 
 void
