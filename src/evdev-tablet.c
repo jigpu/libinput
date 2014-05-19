@@ -175,7 +175,8 @@ tablet_update_button(struct tablet_dispatch *tablet,
 		flags = &tablet->state.stylus_buttons;
 		button = evcode - BTN_TOUCH;
 	} else {
-		log_info("Unhandled button 0x%x\n", evcode);
+		log_info("Unhandled event code %s\n",
+			 libevdev_event_code_get_name(EV_KEY, evcode));
 		return;
 	}
 
