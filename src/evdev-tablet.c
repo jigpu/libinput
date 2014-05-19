@@ -263,8 +263,8 @@ normalize_axis(const struct axis_info *axis_info)
 	double value = (axis_info->abs.value + axis_info->abs.minimum) / range;
 
 	switch (axis_info->axis) {
-	case LIBINPUT_POINTER_AXIS_VERTICAL_TILT:
-	case LIBINPUT_POINTER_AXIS_HORIZONTAL_TILT:
+	case LIBINPUT_POINTER_AXIS_TILT_VERTICAL:
+	case LIBINPUT_POINTER_AXIS_TILT_HORIZONTAL:
 		/* Map to the (-1,1) range */
 		value = (value * 2) - 1;
 		break;
@@ -458,9 +458,9 @@ tablet_init_axes(struct tablet_dispatch *tablet,
 	if (libevdev_has_event_code(device->evdev, EV_ABS, ABS_TILT_X) &&
 	    libevdev_has_event_code(device->evdev, EV_ABS, ABS_TILT_Y)) {
 		tablet_add_axis(tablet, device, ABS_TILT_X,
-				LIBINPUT_POINTER_AXIS_HORIZONTAL_TILT);
+				LIBINPUT_POINTER_AXIS_TILT_HORIZONTAL);
 		tablet_add_axis(tablet, device, ABS_TILT_Y,
-				LIBINPUT_POINTER_AXIS_VERTICAL_TILT);
+				LIBINPUT_POINTER_AXIS_TILT_VERTICAL);
 	}
 }
 
