@@ -37,7 +37,9 @@ enum tablet_status {
 };
 
 struct axis_info {
-	int32_t code, axis, updated;
+	int32_t code;
+	int32_t axis;
+	int32_t updated;
 	struct input_absinfo abs;
 };
 
