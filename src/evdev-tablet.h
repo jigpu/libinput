@@ -33,7 +33,7 @@ enum tablet_status {
 	TABLET_NONE = 0,
 	TABLET_UPDATED = 1 << 0,
 	TABLET_INTERACTED = 1 << 1,
-	TABLET_HAS_CONTACT = 1 << 2,
+	TABLET_STYLUS_IN_CONTACT = 1 << 2,
 };
 
 struct axis_info {

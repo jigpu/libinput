@@ -185,9 +185,9 @@ tablet_process_key(struct tablet_dispatch *tablet,
 		break;
 	case BTN_TOUCH:
 		if (e->value) {
-			tablet_set_status(tablet, TABLET_HAS_CONTACT);
+			tablet_set_status(tablet, TABLET_STYLUS_IN_CONTACT);
 		} else {
-			tablet_unset_status(tablet, TABLET_HAS_CONTACT);
+			tablet_unset_status(tablet, TABLET_STYLUS_IN_CONTACT);
 		}
 
 		/* Fall through */
@@ -227,7 +227,7 @@ sanitize_tablet_axes(struct tablet_dispatch *tablet)
 		/* Keep distance and pressure mutually exclusive */
 		distance->updated = 0;
 	} else if (pressure && pressure->updated &&
-		   !tablet_has_status(tablet, TABLET_HAS_CONTACT)) {
+		   !tablet_has_status(tablet, TABLET_STYLUS_IN_CONTACT)) {
 		pressure->updated = 0;
 	}
 }
