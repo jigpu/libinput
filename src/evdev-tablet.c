@@ -236,7 +236,7 @@ static void
 tablet_check_notify_tool(struct tablet_dispatch *tablet,
 			 struct evdev_device *device,
 			 uint32_t time,
-			 int post_check)
+			 bool post_check)
 {
 	struct libinput_device *base = &device->base;
 
@@ -335,7 +335,7 @@ static void
 tablet_notify_buttons(struct tablet_dispatch *tablet,
 		      struct evdev_device *device,
 		      uint32_t time,
-		      uint32_t post_check)
+		      bool post_check)
 {
 	enum libinput_pointer_button_state state;
 	int32_t pad_buttons, stylus_buttons;
