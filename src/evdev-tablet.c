@@ -358,10 +358,10 @@ tablet_notify_buttons(struct tablet_dispatch *tablet,
 			tablet_get_enabled_buttons(tablet, stylus_buttons);
 	}
 
-	tablet_notify_button_mask(
-		tablet, device, time, pad_buttons, BTN_MISC, state);
-	tablet_notify_button_mask(
-		tablet, device, time, stylus_buttons, BTN_TOUCH, state);
+	tablet_notify_button_mask(tablet, device, time,
+				  pad_buttons, BTN_MISC, state);
+	tablet_notify_button_mask(tablet, device, time,
+				  stylus_buttons, BTN_TOUCH, state);
 }
 
 static void
