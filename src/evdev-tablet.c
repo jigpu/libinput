@@ -105,7 +105,7 @@ tablet_update_axis(struct tablet_dispatch *tablet,
 	if (!(axis_info = tablet_get_axis(tablet, code)))
 		return;
 
-	value = max(axis_info->abs.minimum, min(value, axis_info->abs.maximum));
+	value = clip(value, axis_info->abs.minimum, axis_info->abs.maximum);
 
 	if (value == axis_info->abs.value)
 		return;
