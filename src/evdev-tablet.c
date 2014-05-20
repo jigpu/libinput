@@ -244,7 +244,8 @@ sanitize_tablet_axes(struct tablet_dispatch *tablet)
 	distance = tablet_get_axis(tablet, ABS_DISTANCE);
 	pressure = tablet_get_axis(tablet, ABS_PRESSURE);
 
-	if (distance && pressure && distance->updated && pressure->updated) {
+	if (distance && pressure && distance->updated && pressure->updated &&
+	    distance->axis != 0 && pressure->axis != 0) {
 		/* Keep distance and pressure mutually exclusive */
 		distance->updated = 0;
 	} else if (pressure && pressure->updated &&
