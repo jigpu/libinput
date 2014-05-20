@@ -59,7 +59,7 @@ struct tablet_dispatch {
 
 	struct axis_info axes[MAX_AXES];
 	enum tablet_status status;
-	int n_axes;
+	int naxes;
 };
 
 #endif

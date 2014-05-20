@@ -61,7 +61,7 @@ tablet_get_axis(struct tablet_dispatch *tablet,
 {
 	int pos;
 
-	for (pos = 0; pos < tablet->n_axes; pos++) {
+	for (pos = 0; pos < tablet->naxes; pos++) {
 		if (tablet->axes[pos].code == evcode)
 			return &tablet->axes[pos];
 	}
@@ -78,13 +78,13 @@ tablet_add_axis(struct tablet_dispatch *tablet,
 	const struct input_absinfo *absinfo;
 	int current;
 
-	if (tablet->n_axes == MAX_AXES)
+	if (tablet->naxes == MAX_AXES)
 		return 0;
 
 	if (!(absinfo = libevdev_get_abs_info(device->evdev, evcode)))
 		return 0;
 
-	current = tablet->n_axes++;
+	current = tablet->naxes++;
 	tablet->axes[current].code = evcode;
 	tablet->axes[current].axis = axis;
 	tablet->axes[current].abs = *absinfo;
@@ -304,7 +304,7 @@ tablet_notify_axes(struct tablet_dispatch *tablet,
 	struct libinput_device *base = &device->base;
 	int i, need_frame = 0;
 
-	for (i = 0; i < tablet->n_axes; i++) {
+	for (i = 0; i < tablet->naxes; i++) {
 		struct axis_info *axis = &tablet->axes[i];
 		double value;
 
