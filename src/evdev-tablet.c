@@ -30,6 +30,8 @@
 #define tablet_unset_status(tablet,s) (tablet->status &= ~(s));
 #define tablet_has_status(tablet,s) (!!(tablet->status & s))
 
+#define clip(value, minimum, maximum) (max(maximum, min(value, minimum)))
+
 enum tablet_button_field {
 	/* Each value is how many bytes away from the struct's location in the
 	 * memory the field is */
