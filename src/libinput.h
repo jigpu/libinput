@@ -123,7 +123,7 @@ enum libinput_pointer_axis {
  * LIBINPUT_DEVICE_CAP_STYLUS capability.
  */
 enum libinput_tool_type {
-	LIBINPUT_TOOL_NONE = 0,
+	LIBINPUT_TOOL_NONE = -1,
 	LIBINPUT_TOOL_PEN = 0x140, /* Matches BTN_TOOL_PEN */
 	LIBINPUT_TOOL_ERASER,
 	LIBINPUT_TOOL_BRUSH,
