@@ -77,6 +77,11 @@ struct libinput_device {
 	int refcount;
 };
 
+struct libinput_tool {
+	enum libinput_tool_type type;
+	uint32_t serial;
+};
+
 typedef void (*libinput_source_dispatch_t)(void *data);
 
 struct libinput_source;
@@ -166,7 +171,7 @@ pointer_notify_axis_frame(struct libinput_device *device,
 void
 pointer_notify_tool_update(struct libinput_device *device,
 			   uint32_t time,
-			   enum libinput_tool tool,
+			   enum libinput_tool_type tool,
 			   uint32_t serial);
 
 void

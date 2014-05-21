@@ -68,8 +68,7 @@ struct libinput_event_pointer {
 	enum libinput_pointer_button_state state;
 	enum libinput_pointer_axis axis;
 	li_fixed_t value;
-	enum libinput_tool tool;
-	uint32_t tool_serial;
+	struct libinput_tool tool;
 };
 
 struct libinput_event_touch {
@@ -377,16 +376,22 @@ libinput_event_pointer_get_axis(struct libinput_event_pointer *event)
 	return event->axis;
 }
 
-LIBINPUT_EXPORT enum libinput_tool
+LIBINPUT_EXPORT struct libinput_tool *
 libinput_event_pointer_get_tool(struct libinput_event_pointer *event)
 {
-	return event->tool;
+	return &event->tool;
+}
+
+LIBINPUT_EXPORT enum libinput_tool_type
+libinput_tool_get_type(struct libinput_tool *tool)
+{
+	return tool->type;
 }
 
 LIBINPUT_EXPORT uint32_t
-libinput_event_pointer_get_tool_serial(struct libinput_event_pointer *event)
+libinput_tool_get_serial(struct libinput_tool *tool)
 {
-	return event->tool_serial;
+	return tool->serial;
 }
 
 LIBINPUT_EXPORT li_fixed_t
@@ -955,7 +960,7 @@ pointer_notify_axis_frame(struct libinput_device *device,
 void
 pointer_notify_tool_update(struct libinput_device *device,
 			   uint32_t time,
-			   enum libinput_tool tool,
+			   enum libinput_tool_type type,
 			   uint32_t serial)
 {
 	struct libinput_event_pointer *tool_update_event;
@@ -966,8 +971,10 @@ pointer_notify_tool_update(struct libinput_device *device,
 
 	*tool_update_event = (struct libinput_event_pointer) {
 		.time = time,
-		.tool = tool,
-		.tool_serial = serial,
+		.tool = {
+			.type = type,
+			.serial = serial
+		}
 	};
 
 	post_device_event(device,

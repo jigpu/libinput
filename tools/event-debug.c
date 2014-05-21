@@ -349,42 +349,43 @@ static void
 print_tool_update_event(struct libinput_event *ev)
 {
 	struct libinput_event_pointer *p = libinput_event_get_pointer_event(ev);
-	const char *tool;
+	struct libinput_tool *tool = libinput_event_pointer_get_tool(p);
+	const char *tool_str;
 
-	switch (libinput_event_pointer_get_tool(p)) {
+	switch (libinput_tool_get_type(tool)) {
 	case LIBINPUT_TOOL_NONE:
-		tool = "none";
+		tool_str = "none";
 		break;
 	case LIBINPUT_TOOL_PEN:
-		tool = "pen";
+		tool_str = "pen";
 		break;
 	case LIBINPUT_TOOL_ERASER:
-		tool = "eraser";
+		tool_str = "eraser";
 		break;
 	case LIBINPUT_TOOL_BRUSH:
-		tool = "brush";
+		tool_str = "brush";
 		break;
 	case LIBINPUT_TOOL_PENCIL:
-		tool = "pencil";
+		tool_str = "pencil";
 		break;
 	case LIBINPUT_TOOL_AIRBRUSH:
-		tool = "airbrush";
+		tool_str = "airbrush";
 		break;
 	case LIBINPUT_TOOL_FINGER:
-		tool = "finger";
+		tool_str = "finger";
 		break;
 	case LIBINPUT_TOOL_MOUSE:
-		tool = "mouse";
+		tool_str = "mouse";
 		break;
 	case LIBINPUT_TOOL_LENS:
-		tool = "lens";
+		tool_str = "lens";
 		break;
 	default:
 		abort();
 	}
 
 	print_event_time(libinput_event_pointer_get_time(p));
-	printf("%s (0x%x)", tool, libinput_event_pointer_get_tool_serial(p));
+	printf("%s (0x%x)", tool_str, libinput_tool_get_serial(tool));
 	printf("\n");
 }
 

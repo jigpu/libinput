@@ -47,7 +47,7 @@ struct axis_info {
 struct device_state {
 	uint32_t pad_buttons; /* bitmask of evcode - BTN_MISC */
 	uint32_t stylus_buttons; /* bitmask of evcode - BTN_TOUCH */
-	enum libinput_tool tool;
+	enum libinput_tool_type tool;
 	int32_t tool_serial;
 };
 
