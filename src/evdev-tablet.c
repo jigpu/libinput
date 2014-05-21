@@ -148,7 +148,7 @@ tablet_process_absolute(struct tablet_dispatch *tablet,
 
 static void
 tablet_update_tool(struct tablet_dispatch *tablet,
-		   uint32_t tool,
+		   int32_t tool,
 		   uint32_t enabled)
 {
 	assert(tool != LIBINPUT_TOOL_NONE);
