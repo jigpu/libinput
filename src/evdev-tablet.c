@@ -39,59 +39,9 @@
 
 static inline const struct input_absinfo *
 tablet_get_axis(struct tablet_dispatch *tablet,
-		int32_t evcode)
+		uint32_t evcode)
 {
-	int pos;
-
-	for (pos = 0; pos < tablet->naxes; pos++) {
-		if (tablet->axes[pos].code == evcode)
-			return &tablet->axes[pos];
-	}
-
-	return NULL;
-}
-
-static int
-tablet_add_axis(struct tablet_dispatch *tablet,
-		struct evdev_device *device,
-		uint32_t evcode,
-		uint32_t axis)
-{
-	const struct input_absinfo *absinfo;
-	int current;
-
-	if (tablet->naxes == MAX_AXES)
-		return 0;
-
-	if (!(absinfo = libevdev_get_abs_info(device->evdev, evcode)))
-		return 0;
-
-	current = tablet->naxes++;
-	tablet->axes[current].code = evcode;
-	tablet->axes[current].axis = axis;
-	tablet->axes[current].abs = *absinfo;
-	tablet->axes[current].updated = 0;
-
-	return 1;
-}
-
-static void
-tablet_update_axis(struct tablet_dispatch *tablet,
-		   int32_t code,
-		   int32_t value)
-{
-	struct axis_info *axis_info;
-
-	if (!(axis_info = tablet_get_axis(tablet, code)))
-		return;
-
-	value = max(axis_info->abs.minimum, min(value, axis_info->abs.maximum));
-
-	if (value == axis_info->abs.value)
-		return;
-
-	axis_info->abs.value = value;
-	axis_info->updated = 1;
+	return libevdev_get_abs_info(tablet->device->evdev, evcode);
 }
 
 static void
@@ -118,7 +68,7 @@ tablet_process_absolute(struct tablet_dispatch *tablet,
 	case ABS_RZ:
 	case ABS_WHEEL:
 	case ABS_THROTTLE:
-		tablet_update_axis(tablet, e->code, e->value);
+		set_bit(&tablet->axes[0], e->code);
 		break;
 	default:
 		log_info("Unhandled ABS event code 0x%x\n", e->code);
@@ -221,18 +171,21 @@ tablet_process_misc(struct tablet_dispatch *tablet,
 static void
 sanitize_tablet_axes(struct tablet_dispatch *tablet)
 {
-	struct axis_info *distance, *pressure;
+	const struct input_absinfo *distance;
+	const struct input_absinfo *pressure;
 
 	distance = tablet_get_axis(tablet, ABS_DISTANCE);
 	pressure = tablet_get_axis(tablet, ABS_PRESSURE);
 
-	if (distance && pressure && distance->updated && pressure->updated &&
-	    distance->axis != 0 && pressure->axis != 0) {
+	if (distance && pressure &&
+	    bit_is_set(&tablet->axes[0], ABS_DISTANCE) &&
+	    bit_is_set(&tablet->axes[0], ABS_PRESSURE) &&
+	    distance->value != 0 && pressure->value != 0) {
 		/* Keep distance and pressure mutually exclusive */
-		distance->updated = 0;
-	} else if (pressure && pressure->updated &&
+		clear_bit(&tablet->axes[0], ABS_DISTANCE);
+	} else if (pressure && bit_is_set(&tablet->axes[0], ABS_PRESSURE) &&
 		   !tablet_has_status(tablet, TABLET_STYLUS_IN_CONTACT)) {
-		pressure->updated = 0;
+		clear_bit(&tablet->axes[0], ABS_PRESSURE);
 	}
 }
 
@@ -299,37 +252,30 @@ tablet_notify_axes(struct tablet_dispatch *tablet,
 		   uint32_t time)
 {
 	struct libinput_device *base = &device->base;
-	int i, need_frame = 0;
+	/* A lot of the ABS axes don't apply to tablets, so we loop through the
+	 * values in here so we don't waste time checking axes that will never
+	 * update
+	 */
+	uint32_t check_axes[] = {
+		ABS_DISTANCE,
+		ABS_PRESSURE,
+		ABS_TILT_X,
+		ABS_TILT_Y
+	};
 
-	for (i = 0; i < tablet->naxes; i++) {
-		struct axis_info *axis = &tablet->axes[i];
-		li_fixed_t axis_value;
+	uint32_t * evcode;
+	ARRAY_FOR_EACH(check_axes, evcode) {
+		const struct input_absinfo * absinfo;
 
-		if (!axis->updated)
+		if (!bit_is_set(&tablet->axes[0], *evcode))
 			continue;
 
-		switch (axis->code) {
-		case ABS_PRESSURE:
-			axis_value = normalize_pressure(&axis->abs);
-			break;
-		case ABS_TILT_X:
-		case ABS_TILT_Y:
-			axis_value = normalize_tilt(&axis->abs);
-			break;
-		default:
-			axis_value = li_fixed_from_int(axis->abs.value);
-		}
+		absinfo = libevdev_get_abs_info(device->evdev, *evcode);
 
-		need_frame = 1;
-		axis->updated = 0;
-		pointer_notify_axis(base,
-				    time,
-				    axis->axis,
-				    li_fixed_from_int(axis->abs.value));
+		clear_bit(&tablet->axes[0], *evcode);
+		pointer_notify_axis(base, time, evcode_to_axis(*evcode),
+				    absinfo->value);
 	}
-
-	if (need_frame)
-		pointer_notify_axis_frame(base, time);
 }
 
 static void
@@ -470,29 +416,6 @@ static struct evdev_dispatch_interface tablet_interface = {
 	tablet_destroy
 };
 
-static void
-tablet_init_axes(struct tablet_dispatch *tablet,
-		 struct evdev_device *device)
-{
-	if (libevdev_has_event_code(device->evdev, EV_ABS, ABS_DISTANCE)) {
-		tablet_add_axis(tablet, device, ABS_DISTANCE,
-				LIBINPUT_POINTER_AXIS_DISTANCE);
-	}
-
-	if (libevdev_has_event_code(device->evdev, EV_ABS, ABS_PRESSURE)) {
-		tablet_add_axis(tablet, device, ABS_PRESSURE,
-				LIBINPUT_POINTER_AXIS_PRESSURE);
-	}
-
-	if (libevdev_has_event_code(device->evdev, EV_ABS, ABS_TILT_X) &&
-	    libevdev_has_event_code(device->evdev, EV_ABS, ABS_TILT_Y)) {
-		tablet_add_axis(tablet, device, ABS_TILT_X,
-				LIBINPUT_POINTER_AXIS_TILT_HORIZONTAL);
-		tablet_add_axis(tablet, device, ABS_TILT_Y,
-				LIBINPUT_POINTER_AXIS_TILT_VERTICAL);
-	}
-}
-
 static int
 tablet_init(struct tablet_dispatch *tablet,
 	    struct evdev_device *device)
@@ -501,8 +424,6 @@ tablet_init(struct tablet_dispatch *tablet,
 	tablet->device = device;
 	tablet->status = TABLET_NONE;
 	tablet->state.tool = LIBINPUT_TOOL_NONE;
-
-	tablet_init_axes(tablet, device);
 
 	return 0;
 }
