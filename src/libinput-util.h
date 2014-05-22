@@ -77,6 +77,7 @@ int list_empty(const struct list *list);
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 
 #define CHAR_BITS (sizeof(char) * 8)
+#define NCHARS(x) (((x) + CHAR_BITS - 1) / CHAR_BITS)
 
 /*
  * This fixed point implementation is a verbatim copy from wayland-util.h from
