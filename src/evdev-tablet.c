@@ -280,25 +280,6 @@ tablet_check_notify_tool(struct tablet_dispatch *tablet,
 		base, time, tablet->state.tool, tablet->state.tool_serial);
 }
 
-static double
-normalize_axis(const struct axis_info *axis_info)
-{
-	double range = axis_info->abs.maximum - axis_info->abs.minimum;
-	double value = (axis_info->abs.value + axis_info->abs.minimum) / range;
-
-	switch (axis_info->axis) {
-	case LIBINPUT_POINTER_AXIS_TILT_VERTICAL:
-	case LIBINPUT_POINTER_AXIS_TILT_HORIZONTAL:
-		/* Map to the (-1,1) range */
-		value = (value * 2) - 1;
-		break;
-	default:
-		break;
-	}
-
-	return value;
-}
-
 static void
 tablet_notify_axes(struct tablet_dispatch *tablet,
 		   struct evdev_device *device,
@@ -309,18 +290,16 @@ tablet_notify_axes(struct tablet_dispatch *tablet,
 
 	for (i = 0; i < tablet->naxes; i++) {
 		struct axis_info *axis = &tablet->axes[i];
-		double value;
 
 		if (!axis->updated)
 			continue;
 
 		need_frame = 1;
 		axis->updated = 0;
-		value = normalize_axis(axis);
 		pointer_notify_axis(base,
 				    time,
 				    axis->axis,
-				    li_fixed_from_double(value));
+				    axis->abs.value);
 	}
 
 	if (need_frame)
