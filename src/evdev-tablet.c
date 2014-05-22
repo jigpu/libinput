@@ -57,18 +57,11 @@ tablet_get_released_buttons(struct tablet_dispatch *tablet,
 	return previous_buttons & ~(current_buttons);
 }
 
-static struct axis_info *
+static inline const struct input_absinfo *
 tablet_get_axis(struct tablet_dispatch *tablet,
-		int32_t evcode)
+		uint32_t evcode)
 {
-	int pos;
-
-	for (pos = 0; pos < tablet->naxes; pos++) {
-		if (tablet->axes[pos].code == evcode)
-			return &tablet->axes[pos];
-	}
-
-	return NULL;
+	return libevdev_get_abs_info(tablet->device->evdev, evcode);
 }
 
 static int
@@ -78,40 +71,13 @@ tablet_add_axis(struct tablet_dispatch *tablet,
 		uint32_t axis)
 {
 	const struct input_absinfo *absinfo;
-	int current;
-
-	if (tablet->naxes == MAX_AXES)
-		return 0;
 
 	if (!(absinfo = libevdev_get_abs_info(device->evdev, evcode)))
 		return 0;
 
-	current = tablet->naxes++;
-	tablet->axes[current].code = evcode;
-	tablet->axes[current].axis = axis;
-	tablet->axes[current].abs = *absinfo;
-	tablet->axes[current].updated = 0;
+	/* TODO: implement this */
 
 	return 1;
-}
-
-static void
-tablet_update_axis(struct tablet_dispatch *tablet,
-		   int32_t code,
-		   int32_t value)
-{
-	struct axis_info *axis_info;
-
-	if (!(axis_info = tablet_get_axis(tablet, code)))
-		return;
-
-	value = clip(value, axis_info->abs.minimum, axis_info->abs.maximum);
-
-	if (value == axis_info->abs.value)
-		return;
-
-	axis_info->abs.value = value;
-	axis_info->updated = 1;
 }
 
 static void
@@ -138,7 +104,7 @@ tablet_process_absolute(struct tablet_dispatch *tablet,
 	case ABS_RZ:
 	case ABS_WHEEL:
 	case ABS_THROTTLE:
-		tablet_update_axis(tablet, e->code, e->value);
+		set_bit(&tablet->axes[0], e->code);
 		break;
 	default:
 		log_info("Unhandled ABS event code 0x%x\n", e->code);
@@ -241,18 +207,21 @@ tablet_process_misc(struct tablet_dispatch *tablet,
 static void
 sanitize_tablet_axes(struct tablet_dispatch *tablet)
 {
-	struct axis_info *distance, *pressure;
+	const struct input_absinfo *distance;
+	const struct input_absinfo *pressure;
 
 	distance = tablet_get_axis(tablet, ABS_DISTANCE);
 	pressure = tablet_get_axis(tablet, ABS_PRESSURE);
 
-	if (distance && pressure && distance->updated && pressure->updated &&
-	    distance->axis != 0 && pressure->axis != 0) {
+	if (distance && pressure &&
+	    bit_is_set(&tablet->axes[0], ABS_DISTANCE) &&
+	    bit_is_set(&tablet->axes[0], ABS_PRESSURE) &&
+	    distance->value != 0 && pressure->value != 0) {
 		/* Keep distance and pressure mutually exclusive */
-		distance->updated = 0;
-	} else if (pressure && pressure->updated &&
+		clear_bit(&tablet->axes[0], ABS_DISTANCE);
+	} else if (pressure && bit_is_set(&tablet->axes[0], ABS_PRESSURE) &&
 		   !tablet_has_status(tablet, TABLET_STYLUS_IN_CONTACT)) {
-		pressure->updated = 0;
+		clear_bit(&tablet->axes[0], ABS_PRESSURE);
 	}
 }
 
@@ -280,30 +249,53 @@ tablet_check_notify_tool(struct tablet_dispatch *tablet,
 		base, time, tablet->state.tool, tablet->state.tool_serial);
 }
 
+static enum libinput_pointer_axis
+evcode_to_axis(uint32_t evcode)
+{
+	switch (evcode) {
+	case ABS_DISTANCE:
+		return LIBINPUT_POINTER_AXIS_DISTANCE;
+	case ABS_PRESSURE:
+		return LIBINPUT_POINTER_AXIS_PRESSURE;
+	case ABS_TILT_X:
+		return LIBINPUT_POINTER_AXIS_TILT_HORIZONTAL;
+	case ABS_TILT_Y:
+		return LIBINPUT_POINTER_AXIS_TILT_VERTICAL;
+	default:
+		return -1;
+	}
+}
+
 static void
 tablet_notify_axes(struct tablet_dispatch *tablet,
 		   struct evdev_device *device,
 		   uint32_t time)
 {
 	struct libinput_device *base = &device->base;
-	int i, need_frame = 0;
+	/* A lot of the ABS axes don't apply to tablets, so we loop through the
+	 * values in here so we don't waste time checking axes that will never
+	 * update
+	 */
+	uint32_t check_axes[] = {
+		ABS_DISTANCE,
+		ABS_PRESSURE,
+		ABS_TILT_X,
+		ABS_TILT_Y
+	};
 
-	for (i = 0; i < tablet->naxes; i++) {
-		struct axis_info *axis = &tablet->axes[i];
+	uint32_t * evcode;
+	ARRAY_FOR_EACH(check_axes, evcode) {
+		const struct input_absinfo * absinfo;
 
-		if (!axis->updated)
+		if (!bit_is_set(&tablet->axes[0], *evcode))
 			continue;
 
-		need_frame = 1;
-		axis->updated = 0;
-		pointer_notify_axis(base,
-				    time,
-				    axis->axis,
-				    axis->abs.value);
-	}
+		absinfo = libevdev_get_abs_info(device->evdev, *evcode);
 
-	if (need_frame)
-		pointer_notify_axis_frame(base, time);
+		clear_bit(&tablet->axes[0], *evcode);
+		pointer_notify_axis(base, time, evcode_to_axis(*evcode),
+				    absinfo->value);
+	}
 }
 
 static void
