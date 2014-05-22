@@ -76,6 +76,8 @@ int list_empty(const struct list *list);
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 
+#define CHAR_BITS (sizeof(char) * 8)
+
 /*
  * This fixed point implementation is a verbatim copy from wayland-util.h from
  * the Wayland project, with the wl_ prefix renamed li_.
@@ -105,6 +107,28 @@ static inline void *
 zalloc(size_t size)
 {
 	return calloc(1, size);
+}
+
+/* This bitfield helper implementation is taken from from libevdev-util.h,
+ * except that it has been modified to work with arrays of unsigned chars
+ */
+
+static inline int
+bit_is_set(const unsigned char *array, int bit)
+{
+    return !!(array[bit / CHAR_BITS] & (1 << (bit % CHAR_BITS)));
+}
+
+static inline void
+set_bit(unsigned char *array, int bit)
+{
+    array[bit / CHAR_BITS] |= (1 << (bit % CHAR_BITS));
+}
+
+static inline void
+clear_bit(unsigned char *array, int bit)
+{
+    array[bit / CHAR_BITS] &= ~(1 << (bit % CHAR_BITS));
 }
 
 #endif /* LIBINPUT_UTIL_H */
