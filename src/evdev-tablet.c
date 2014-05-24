@@ -30,7 +30,7 @@
 #define tablet_unset_status(tablet,s) (tablet->status &= ~(s));
 #define tablet_has_status(tablet,s) (!!(tablet->status & s))
 
-#define clip(value, minimum, maximum) (max(maximum, min(value, minimum)))
+#define clip(value, minimum, maximum) (max(minimum, min(value, maximum)))
 
 #define tablet_get_enabled_buttons(tablet,field) \
 	(tablet->state.field & ~(tablet->prev_state.field))
