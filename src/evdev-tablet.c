@@ -32,30 +32,10 @@
 
 #define clip(value, minimum, maximum) (max(maximum, min(value, minimum)))
 
-enum tablet_button_field {
-	/* Each value is how many bytes away from the struct's location in the
-	 * memory the field is */
-	PAD_BUTTONS = 0,
-	STYLUS_BUTTONS = sizeof(uint32_t)
-};
-
-static inline uint32_t
-tablet_get_pressed_buttons(struct tablet_dispatch *tablet,
-			   enum tablet_button_field field)
-{
-	uint32_t current_buttons = *(uint32_t*)(&(tablet->state) + field);
-	uint32_t previous_buttons = *(uint32_t*)(&(tablet->prev_state) + field);
-	return current_buttons & ~(previous_buttons);
-}
-
-static inline uint32_t
-tablet_get_released_buttons(struct tablet_dispatch *tablet,
-			    enum tablet_button_field field)
-{
-	uint32_t current_buttons = *(uint32_t*)(&(tablet->state) + field);
-	uint32_t previous_buttons = *(uint32_t*)(&(tablet->prev_state) + field);
-	return previous_buttons & ~(current_buttons);
-}
+#define tablet_get_enabled_buttons(tablet,field) \
+	(tablet->state.field & ~(tablet->prev_state.field))
+#define tablet_get_disabled_buttons(tablet,field) \
+	(tablet->prev_state.field & ~(tablet->state.field))
 
 static struct axis_info *
 tablet_get_axis(struct tablet_dispatch *tablet,
@@ -350,15 +330,15 @@ tablet_notify_buttons(struct tablet_dispatch *tablet,
 	if (post_check) {
 		/* Only notify button releases */
 		state = LIBINPUT_POINTER_BUTTON_STATE_RELEASED;
-		pad_buttons = tablet_get_released_buttons(tablet, PAD_BUTTONS);
+		pad_buttons = tablet_get_disabled_buttons(tablet, pad_buttons);
 		stylus_buttons =
-			tablet_get_released_buttons(tablet, STYLUS_BUTTONS);
+			tablet_get_disabled_buttons(tablet, stylus_buttons);
 	} else {
 		/* Only notify button presses */
 		state = LIBINPUT_POINTER_BUTTON_STATE_PRESSED;
-		pad_buttons = tablet_get_pressed_buttons(tablet, PAD_BUTTONS);
+		pad_buttons = tablet_get_enabled_buttons(tablet, pad_buttons);
 		stylus_buttons =
-			tablet_get_pressed_buttons(tablet, STYLUS_BUTTONS);
+			tablet_get_enabled_buttons(tablet, stylus_buttons);
 	}
 
 	tablet_notify_button_mask(tablet, device, time,
