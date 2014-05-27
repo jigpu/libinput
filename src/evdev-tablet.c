@@ -274,7 +274,7 @@ tablet_notify_axes(struct tablet_dispatch *tablet,
 
 		clear_bit(&tablet->axes[0], *evcode);
 		pointer_notify_axis(base, time, evcode_to_axis(*evcode),
-				    absinfo->value);
+				    li_fixed_from_int(absinfo->value));
 	}
 }
 
