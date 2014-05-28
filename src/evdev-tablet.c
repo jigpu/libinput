@@ -37,6 +37,8 @@
 #define tablet_get_disabled_buttons(tablet,field) \
 	(tablet->prev_state.field & ~(tablet->state.field))
 
+#define LI_FIXED_T_MAX (8388607.99609375)
+
 static inline const struct input_absinfo *
 tablet_get_axis(struct tablet_dispatch *tablet,
 		uint32_t evcode)
@@ -246,6 +248,22 @@ evcode_to_axis(uint32_t evcode)
 	}
 }
 
+static inline li_fixed_t
+normalize_pressure(const struct input_absinfo * absinfo) {
+	double range = absinfo->maximum - absinfo->minimum;
+	double value = absinfo->value - absinfo->minimum;
+
+	return li_fixed_from_double(value * (LI_FIXED_T_MAX / range));
+}
+
+static inline li_fixed_t
+normalize_tilt(const struct input_absinfo * absinfo) {
+	double range = (absinfo->maximum - absinfo->minimum) / 2;
+	double value = absinfo->value - absinfo->minimum;
+
+	return li_fixed_from_double((value - range) * (LI_FIXED_T_MAX / range));
+}
+
 static void
 tablet_notify_axes(struct tablet_dispatch *tablet,
 		   struct evdev_device *device,
@@ -266,15 +284,30 @@ tablet_notify_axes(struct tablet_dispatch *tablet,
 	uint32_t * evcode;
 	ARRAY_FOR_EACH(check_axes, evcode) {
 		const struct input_absinfo * absinfo;
+		li_fixed_t axis_value;
 
 		if (!bit_is_set(&tablet->axes[0], *evcode))
 			continue;
 
 		absinfo = libevdev_get_abs_info(device->evdev, *evcode);
 
+		switch (*evcode) {
+		case ABS_PRESSURE:
+			axis_value = normalize_pressure(absinfo);
+			break;
+		case ABS_TILT_X:
+		case ABS_TILT_Y:
+			axis_value = normalize_tilt(absinfo);
+			break;
+		default:
+			axis_value = li_fixed_from_int(absinfo->value);
+		}
+
+		absinfo = libevdev_get_abs_info(device->evdev, *evcode);
+
 		clear_bit(&tablet->axes[0], *evcode);
 		pointer_notify_axis(base, time, evcode_to_axis(*evcode),
-				    li_fixed_from_int(absinfo->value));
+				    axis_value);
 	}
 }
 
