@@ -293,7 +293,7 @@ notify_button_pressed(struct touchpad_dispatch *touchpad, uint32_t time)
 		&touchpad->device->base,
 		time,
 		DEFAULT_TOUCHPAD_SINGLE_TAP_BUTTON,
-		LIBINPUT_POINTER_BUTTON_STATE_PRESSED);
+		LIBINPUT_BUTTON_STATE_PRESSED);
 }
 
 static void
@@ -303,7 +303,7 @@ notify_button_released(struct touchpad_dispatch *touchpad, uint32_t time)
 		&touchpad->device->base,
 		time,
 		DEFAULT_TOUCHPAD_SINGLE_TAP_BUTTON,
-		LIBINPUT_POINTER_BUTTON_STATE_RELEASED);
+		LIBINPUT_BUTTON_STATE_RELEASED);
 }
 
 static void
@@ -651,8 +651,8 @@ process_key(struct touchpad_dispatch *touchpad,
 			&touchpad->device->base,
 			time,
 			code,
-			e->value ? LIBINPUT_POINTER_BUTTON_STATE_PRESSED :
-				   LIBINPUT_POINTER_BUTTON_STATE_RELEASED);
+			e->value ? LIBINPUT_BUTTON_STATE_PRESSED :
+				   LIBINPUT_BUTTON_STATE_RELEASED);
 		break;
 	case BTN_TOOL_PEN:
 	case BTN_TOOL_RUBBER:
