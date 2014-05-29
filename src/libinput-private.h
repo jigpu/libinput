@@ -169,12 +169,6 @@ pointer_notify_axis_frame(struct libinput_device *device,
 			  uint32_t time);
 
 void
-pointer_notify_tool_update(struct libinput_device *device,
-			   uint32_t time,
-			   enum libinput_tool_type tool,
-			   uint32_t serial);
-
-void
 touch_notify_touch_down(struct libinput_device *device,
 			uint32_t time,
 			int32_t slot,
@@ -199,4 +193,28 @@ touch_notify_touch_up(struct libinput_device *device,
 void
 touch_notify_frame(struct libinput_device *device,
 		   uint32_t time);
+
+void
+tablet_notify_axis(struct libinput_device *device,
+		   uint32_t time,
+		   enum libinput_tablet_axis axis,
+		   li_fixed_t value);
+
+void
+tablet_notify_button(struct libinput_device *device,
+		     uint32_t time,
+		     int32_t button,
+		     enum libinput_button_state state);
+void
+tablet_notify_motion_absolute(struct libinput_device *device,
+			      uint32_t time,
+			      li_fixed_t x,
+			      li_fixed_t y);
+
+void
+tablet_notify_tool_update(struct libinput_device *device,
+			  uint32_t time,
+			  enum libinput_tool_type tool,
+			  uint32_t serial);
+
 #endif /* LIBINPUT_PRIVATE_H */

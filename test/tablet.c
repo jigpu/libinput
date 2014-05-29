@@ -35,7 +35,7 @@ START_TEST(proximity_in_out)
 {
 	struct litest_device *dev = litest_current_device();
 	struct libinput *li = dev->libinput;
-	struct libinput_event_pointer *pointer_event;
+	struct libinput_event_tablet *tablet_event;
 	struct libinput_event *event;
 	int have_tool_update = 0;
 	struct axis_replacement axes[] = {
@@ -49,10 +49,10 @@ START_TEST(proximity_in_out)
 	libinput_dispatch(li);
 
 	while ((event = libinput_get_event(li))) {
-		if (libinput_event_get_type(event) == LIBINPUT_EVENT_POINTER_TOOL_UPDATE) {
+		if (libinput_event_get_type(event) == LIBINPUT_EVENT_TABLET_TOOL_UPDATE) {
 			have_tool_update++;
-			pointer_event = libinput_event_get_pointer_event(event);
-			ck_assert_int_eq(libinput_event_pointer_get_tool(pointer_event), LIBINPUT_TOOL_PEN);
+			tablet_event = libinput_event_get_tablet_event(event);
+			ck_assert_int_eq(libinput_event_tablet_get_tool(tablet_event), LIBINPUT_TOOL_PEN);
 		}
 		libinput_event_destroy(event);
 	}
@@ -62,10 +62,10 @@ START_TEST(proximity_in_out)
 	libinput_dispatch(li);
 
 	while ((event = libinput_get_event(li))) {
-		if (libinput_event_get_type(event) == LIBINPUT_EVENT_POINTER_TOOL_UPDATE) {
+		if (libinput_event_get_type(event) == LIBINPUT_EVENT_TABLET_TOOL_UPDATE) {
 			have_tool_update++;
-			pointer_event = libinput_event_get_pointer_event(event);
-			ck_assert_int_eq(libinput_event_pointer_get_tool(pointer_event), LIBINPUT_TOOL_NONE);
+			tablet_event = libinput_event_get_tablet_event(event);
+			ck_assert_int_eq(libinput_event_tablet_get_tool(tablet_event), LIBINPUT_TOOL_NONE);
 		}
 		libinput_event_destroy(event);
 	}
@@ -77,7 +77,7 @@ START_TEST(motion)
 {
 	struct litest_device *dev = litest_current_device();
 	struct libinput *li = dev->libinput;
-	struct libinput_event_pointer *pointer_event;
+	struct libinput_event_tablet *tablet_event;
 	struct libinput_event *event;
 	int have_motion = 0;
 	struct axis_replacement axes[] = {
@@ -91,7 +91,7 @@ START_TEST(motion)
 	libinput_dispatch(li);
 
 	while ((event = libinput_get_event(li))) {
-		if (libinput_event_get_type(event) == LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE) {
+		if (libinput_event_get_type(event) == LIBINPUT_EVENT_TABLET_MOTION_ABSOLUTE) {
 			have_motion++;
 		}
 		libinput_event_destroy(event);
@@ -102,7 +102,7 @@ START_TEST(motion)
 	libinput_dispatch(li);
 
 	while ((event = libinput_get_event(li))) {
-		if (libinput_event_get_type(event) == LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE) {
+		if (libinput_event_get_type(event) == LIBINPUT_EVENT_TABLET_MOTION_ABSOLUTE) {
 			have_motion++;
 		}
 		libinput_event_destroy(event);
@@ -114,7 +114,7 @@ START_TEST(motion)
 	libinput_dispatch(li);
 
 	while ((event = libinput_get_event(li))) {
-		ck_assert(libinput_event_get_type(event) != LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE);
+		ck_assert(libinput_event_get_type(event) != LIBINPUT_EVENT_TABLET_MOTION_ABSOLUTE);
 		libinput_event_destroy(event);
 	}
 }

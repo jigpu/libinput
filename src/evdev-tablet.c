@@ -227,22 +227,22 @@ tablet_check_notify_tool(struct tablet_dispatch *tablet,
 		return;
 	}
 
-	pointer_notify_tool_update(
+	tablet_notify_tool_update(
 		base, time, tablet->state.tool, tablet->state.tool_serial);
 }
 
-static enum libinput_pointer_axis
+static enum libinput_tablet_axis
 evcode_to_axis(uint32_t evcode)
 {
 	switch (evcode) {
 	case ABS_DISTANCE:
-		return LIBINPUT_POINTER_AXIS_DISTANCE;
+		return LIBINPUT_TABLET_AXIS_DISTANCE;
 	case ABS_PRESSURE:
-		return LIBINPUT_POINTER_AXIS_PRESSURE;
+		return LIBINPUT_TABLET_AXIS_PRESSURE;
 	case ABS_TILT_X:
-		return LIBINPUT_POINTER_AXIS_TILT_HORIZONTAL;
+		return LIBINPUT_TABLET_AXIS_TILT_HORIZONTAL;
 	case ABS_TILT_Y:
-		return LIBINPUT_POINTER_AXIS_TILT_VERTICAL;
+		return LIBINPUT_TABLET_AXIS_TILT_VERTICAL;
 	default:
 		return -1;
 	}
@@ -306,7 +306,7 @@ tablet_notify_axes(struct tablet_dispatch *tablet,
 		absinfo = libevdev_get_abs_info(device->evdev, *evcode);
 
 		clear_bit(&tablet->axes[0], *evcode);
-		pointer_notify_axis(base, time, evcode_to_axis(*evcode),
+		tablet_notify_axis(base, time, evcode_to_axis(*evcode),
 				    axis_value);
 	}
 }
@@ -332,10 +332,10 @@ tablet_notify_button_mask(struct tablet_dispatch *tablet,
 		if (!enabled)
 			continue;
 
-		pointer_notify_button(base,
-				      time,
-				      num_button + button_base - 1,
-				      state);
+		tablet_notify_button(base,
+				     time,
+				     num_button + button_base - 1,
+				     state);
 	}
 }
 
@@ -392,7 +392,7 @@ tablet_flush(struct tablet_dispatch *tablet,
 			x = li_fixed_from_int(device->abs.x);
 			y = li_fixed_from_int(device->abs.y);
 
-			pointer_notify_motion_absolute(base, time, x, y);
+			tablet_notify_motion_absolute(base, time, x, y);
 			tablet_unset_status(tablet, TABLET_UPDATED);
 		}
 
@@ -455,20 +455,20 @@ tablet_init_axes(struct tablet_dispatch *tablet,
 {
 	if (libevdev_has_event_code(device->evdev, EV_ABS, ABS_DISTANCE)) {
 		tablet_add_axis(tablet, device, ABS_DISTANCE,
-				LIBINPUT_POINTER_AXIS_DISTANCE);
+				LIBINPUT_TABLET_AXIS_DISTANCE);
 	}
 
 	if (libevdev_has_event_code(device->evdev, EV_ABS, ABS_PRESSURE)) {
 		tablet_add_axis(tablet, device, ABS_PRESSURE,
-				LIBINPUT_POINTER_AXIS_PRESSURE);
+				LIBINPUT_TABLET_AXIS_PRESSURE);
 	}
 
 	if (libevdev_has_event_code(device->evdev, EV_ABS, ABS_TILT_X) &&
 	    libevdev_has_event_code(device->evdev, EV_ABS, ABS_TILT_Y)) {
 		tablet_add_axis(tablet, device, ABS_TILT_X,
-				LIBINPUT_POINTER_AXIS_TILT_HORIZONTAL);
+				LIBINPUT_TABLET_AXIS_TILT_HORIZONTAL);
 		tablet_add_axis(tablet, device, ABS_TILT_Y,
-				LIBINPUT_POINTER_AXIS_TILT_VERTICAL);
+				LIBINPUT_TABLET_AXIS_TILT_VERTICAL);
 	}
 }
 

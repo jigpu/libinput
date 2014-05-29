@@ -109,11 +109,7 @@ enum libinput_button_state {
  */
 enum libinput_pointer_axis {
 	LIBINPUT_POINTER_AXIS_VERTICAL_SCROLL = 0,
-	LIBINPUT_POINTER_AXIS_HORIZONTAL_SCROLL = 1,
-	LIBINPUT_POINTER_AXIS_DISTANCE = 2,
-	LIBINPUT_POINTER_AXIS_PRESSURE = 3,
-	LIBINPUT_POINTER_AXIS_TILT_VERTICAL = 4,
-	LIBINPUT_POINTER_AXIS_TILT_HORIZONTAL = 5
+	LIBINPUT_POINTER_AXIS_HORIZONTAL_SCROLL = 1
 };
 
 /**
@@ -132,6 +128,19 @@ enum libinput_tool_type {
 	LIBINPUT_TOOL_FINGER,
 	LIBINPUT_TOOL_MOUSE,
 	LIBINPUT_TOOL_LENS
+};
+
+/**
+ * @ingroup device
+ *
+ * Available axis types for a device. It must have the @ref
+ * LIBINPUT_DEVICE_CAP_STYLUS capability.
+ */
+enum libinput_tablet_axis {
+	LIBINPUT_TABLET_AXIS_DISTANCE = 0,
+	LIBINPUT_TABLET_AXIS_PRESSURE = 1,
+	LIBINPUT_TABLET_AXIS_TILT_VERTICAL = 2,
+	LIBINPUT_TABLET_AXIS_TILT_HORIZONTAL = 3
 };
 
 /**
@@ -183,12 +192,6 @@ enum libinput_event_type {
 	 */
 	LIBINPUT_EVENT_POINTER_AXIS_FRAME,
 
-	/**
-	 * Signals that a device with the @ref LIBINPUT_DEVICE_CAP_STYLUS
-	 * capability has changed its tool.
-	 */
-	LIBINPUT_EVENT_POINTER_TOOL_UPDATE,
-
 	LIBINPUT_EVENT_TOUCH_DOWN = 500,
 	LIBINPUT_EVENT_TOUCH_UP,
 	LIBINPUT_EVENT_TOUCH_MOTION,
@@ -197,7 +200,16 @@ enum libinput_event_type {
 	 * Signals the end of a set of touchpoints at one device sample
 	 * time. This event has no coordinate information attached.
 	 */
-	LIBINPUT_EVENT_TOUCH_FRAME
+	LIBINPUT_EVENT_TOUCH_FRAME,
+
+	/**
+	 * Signals that a device with the @ref LIBINPUT_DEVICE_CAP_STYLUS
+	 * capability has changed its tool.
+	 */
+	LIBINPUT_EVENT_TABLET_MOTION_ABSOLUTE = 600,
+	LIBINPUT_EVENT_TABLET_BUTTON,
+	LIBINPUT_EVENT_TABLET_AXIS,
+	LIBINPUT_EVENT_TABLET_TOOL_UPDATE
 };
 
 struct libinput;
@@ -220,6 +232,9 @@ struct libinput_event_pointer;
  * LIBINPUT_EVENT_TOUCH_FRAME.
  */
 struct libinput_event_touch;
+
+/* TODO: Document this */
+struct libinput_event_tablet;
 
 /**
  * @defgroup fixed_point Fixed point utilities
@@ -349,6 +364,19 @@ libinput_event_get_keyboard_event(struct libinput_event *event);
  */
 struct libinput_event_touch *
 libinput_event_get_touch_event(struct libinput_event *event);
+
+/**
+ * @ingroup event
+ *
+ * Return the tablet event that is this input event. If the event type does not
+ * match the tablet event types, this function returns NULL.
+ *
+ * The inverse of this function is libinput_event_tablet_get_base_event().
+ *
+ * @return A touch event, or NULL for other events
+ */
+struct libinput_event_tablet *
+libinput_event_get_tablet_event(struct libinput_event *event);
 
 /**
  * @ingroup event
@@ -621,41 +649,6 @@ libinput_event_pointer_get_axis(struct libinput_event_pointer *event);
 /**
  * @ingroup event_pointer
  *
- * Return the tool mode set by this event.
- * For pointer events that are not of type @ref LIBINPUT_EVENT_POINTER_TOOL_UPDATE,
- * this function returns NULL.
- *
- * @note It is an application bug to call this function for events other than
- * @ref LIBINPUT_EVENT_POINTER_TOOL_UPDATE.
- *
- * @return The new tool triggering this event
- */
-struct libinput_tool *
-libinput_event_pointer_get_tool(struct libinput_event_pointer *event);
-
-/**
- * @ingroup event_pointer
- *
- * Return the tool mode set by this event.
- *
- * @return The type of tool triggering this event
- */
-enum libinput_tool_type
-libinput_tool_get_type(struct libinput_tool *tool);
-
-/**
- * @ingroup event_pointer
- *
- * Return the tool serial set by this event.
- *
- * @return The new tool serial triggering this event
- */
-uint32_t
-libinput_tool_get_serial(struct libinput_tool *tool);
-
-/**
- * @ingroup event_pointer
- *
  * Return the axis value of the given axis. The interpretation of the value
  * is dependent on the axis. For the two scrolling axes
  * LIBINPUT_POINTER_AXIS_VERTICAL_SCROLL and
@@ -683,7 +676,6 @@ libinput_event_pointer_get_axis_value(struct libinput_event_pointer *event);
  */
 struct libinput_event *
 libinput_event_pointer_get_base_event(struct libinput_event_pointer *event);
-
 
 /**
  * @defgroup event_touch Touch events
@@ -812,6 +804,211 @@ libinput_event_touch_get_y_transformed(struct libinput_event_touch *event,
  */
 struct libinput_event *
 libinput_event_touch_get_base_event(struct libinput_event_touch *event);
+
+/** @defgroup event_tablet Tablet events
+ *
+ * Events that come from tablet devices.
+ */
+
+/**
+ * @ingroup event_tablet
+ *
+ * Return the axis that triggered this event.
+ * For tablet events that are not of type LIBINPUT_EVENT_TABLET_AXIS,
+ * this function returns 0.
+ *
+ * @note It is an application bug to call this function for events other than
+ * LIBINPUT_EVENT_TABLET_AXIS.
+ *
+ * @return the axis triggering this event
+ */
+enum libinput_tablet_axis
+libinput_event_tablet_get_axis(struct libinput_event_tablet *event);
+
+/**
+ * @ingroup event_tablet
+ *
+ * Return the axis value of a given axis for a tablet. The interpretation of the
+ * value is dependent on the axis. For the distance axis
+ * LIBINPUT_TABLET_AXIS_DISTANCE, the value is a rough approximation of how many
+ * millimeters away the current tool is from the sensor. For the pressure axis
+ * LIBINPUT_TABLET_AXIS_PRESSURE, value is a normalized value between 0 and @ref
+ * LI_FIXED_MAX. For the tilt axes LIBINPUT_TABLET_AXIS_TILT_VERTICAL and
+ * LIBINPUT_TABLET_AXIS_TILT_HORIZONTAL, the value is a normalized value between
+ * @ref LI_FIXED_MIN and @ref LI_FIXED_MAX.
+ *
+ * For tablet events that are not of type LIBINPUT_EVENT_TABLET_AXIS, this
+ * function returns 0.
+ *
+ * @note It is an application bug to call this function for events other than
+ * LIBINPUT_EVENT_TABLET_AXIS.
+ *
+ * @param event The libinput tablet event
+ * @param axis The axis to retrieve the value of
+ * @return The current value of the the axis
+ */
+li_fixed_t
+libinput_event_tablet_get_axis_value(struct libinput_event_tablet *event,
+				     enum libinput_tablet_axis axis);
+
+/**
+ * @ingroup event_tablet
+ *
+ * Return the tool mode set by this event.
+ * For tablet events that are not of type @ref LIBINPUT_EVENT_TABLET_TOOL_UPDATE,
+ * this function returns NULL.
+ *
+ * @note It is an application bug to call this function for events other than
+ * @ref LIBINPUT_EVENT_TABLET_TOOL_UPDATE.
+ *
+ * @param event The libinput tablet event
+ * @return The new tool triggering this event
+ */
+struct libinput_tool *
+libinput_event_tablet_get_tool(struct libinput_event_tablet *event);
+
+/**
+ * @ingroup event_tablet
+ *
+ * Return the type of tool type for a tool object
+ *
+ * @param tool The libinput tool
+ * @return The tool type for this tool object
+ */
+enum libinput_tool_type
+libinput_tool_get_type(struct libinput_tool *tool);
+
+/**
+ * @ingroup event_tablet
+ *
+ * Return the serial number belonging to a tool
+ *
+ * @note Not all tablets report a serial number along with the type of tool
+ * being used. For tools where this isn't supported, -1 will be returned.
+ *
+ * @param tool The libinput tool
+ * @return The new tool serial triggering this event
+ */
+uint32_t
+libinput_tool_get_serial(struct libinput_tool *tool);
+
+/**
+ * @ingroup event_tablet
+ *
+ * Return the button that triggered this event.
+ * For tablet events that are not of type LIBINPUT_EVENT_TABLET_BUTTON, this
+ * function returns 0.
+ *
+ * @note It is an applicaiton bug to call this function for events other then
+ * LIBINPUT_EVENT_TABLET_BUTTON.
+ *
+ * @param event The libinput tablet event
+ * @return the button triggering this event
+ */
+uint32_t
+libinput_event_tablet_get_button(struct libinput_event_tablet *event);
+
+/**
+ * @ingroup event_tablet
+ *
+ * Return the button state of the event.
+ *
+ * @param event The libinput tablet event
+ * @return the button state triggering this event
+ */
+enum libinput_button_state
+libinput_event_tablet_get_button_state(struct libinput_event_tablet *event);
+
+/**
+ * @ingroup event_tablet
+ *
+ * For the button of a LIBINPUT_EVENT_TABLET_BUTTON event, return the total
+ * number of buttons pressed on all devices on the associated seat after the
+ * the event was triggered.
+ *
+ " @note It is an application bug to call this function for events other than
+ * LIBINPUT_EVENT_TABLET_BUTTON. For other events, this function returns 0.
+ *
+ * @return the seat wide pressed button count for the key of this event
+ */
+uint32_t
+libinput_event_tablet_get_seat_button_count(
+	struct libinput_event_tablet *event);
+
+/**
+ * @ingroup event_tablet
+ *
+ * @param event The libinput tablet event
+ * @return The event time for this event
+ */
+uint32_t
+libinput_event_tablet_get_time(struct libinput_event_tablet *event);
+
+/**
+ * @ingroup event_tablet
+ *
+ * Return the current absolute x coordinate of the tablet event.
+ *
+ * The coordinate is in a device specific coordinate space; to get the
+ * corresponding output screen coordinate, use
+ * libinput_event_tablet_get_x_transformed().
+ *
+ * @param event The libinput tablet event
+ * @return the current absolute x coordinate
+ */
+li_fixed_t
+libinput_event_tablet_get_x(struct libinput_event_tablet *event);
+
+/**
+ * @ingroup event_tablet
+ *
+ * Return the current absolute y coordinate of the tablet event.
+ *
+ * The coordinate is in a device specific coordinate space; to get the
+ * corresponding output screen coordinate, use
+ * libinput_event_tablet_get_y_transformed().
+ *
+ * @param event The libinput tablet event
+ * @return the current absolute y coordinate
+ */
+li_fixed_t
+libinput_event_tablet_get_y(struct libinput_event_tablet *event);
+
+/**
+ * @ingroup event_tablet
+ *
+ * Return the current absolute x coordinate of the tablet event, transformed to
+ * screen coordinates.
+ *
+ * @param event The libinput tablet event
+ * @param width The current output screen width
+ * @return the current absolute x coordinate transformed to a screen coordinate
+ */
+li_fixed_t
+libinput_event_tablet_get_x_transformed(struct libinput_event_tablet *event,
+					uint32_t width);
+
+/**
+ * @ingroup event_tablet
+ *
+ * Return the current absolute y coordinate of the tablet event, transformed to
+ * screen coordinates.
+ *
+ * @param event The libinput tablet event
+ * @param height The current output screen height
+ * @return the current absolute y coordinate transformed to a screen coordinate
+ */
+li_fixed_t
+libinput_event_tablet_get_y_transformed(struct libinput_event_tablet *event,
+					uint32_t height);
+
+/**
+ * @ingroup event_tablet
+ *
+ * @return The generic libinput_event of this event
+ */
+struct libinput_event *
+libinput_event_tablet_get_base_event(struct libinput_event_tablet *event);
 
 /**
  * @defgroup base Initialization and manipulation of libinput contexts

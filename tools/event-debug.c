@@ -202,9 +202,6 @@ print_event_header(struct libinput_event *ev)
 	case LIBINPUT_EVENT_POINTER_AXIS_FRAME:
 		type = "POINTER_AXIS_FRAME";
 		break;
-	case LIBINPUT_EVENT_POINTER_TOOL_UPDATE:
-		type = "POINTER_TOOL_UPDATE";
-		break;
 	case LIBINPUT_EVENT_TOUCH_DOWN:
 		type = "TOUCH_DOWN";
 		break;
@@ -219,6 +216,18 @@ print_event_header(struct libinput_event *ev)
 		break;
 	case LIBINPUT_EVENT_TOUCH_FRAME:
 		type = "TOUCH_FRAME";
+		break;
+	case LIBINPUT_EVENT_TABLET_TOOL_UPDATE:
+		type = "TABLET_TOOL_UPDATE";
+		break;
+	case LIBINPUT_EVENT_TABLET_MOTION_ABSOLUTE:
+		type = "TABLET_MOTION_ABSOLUTE";
+		break;
+	case LIBINPUT_EVENT_TABLET_BUTTON:
+		type = "TABLET_BUTTON";
+		break;
+	case LIBINPUT_EVENT_TABLET_AXIS:
+		type = "TABLET_AXIS";
 		break;
 	}
 
@@ -256,13 +265,27 @@ print_key_event(struct libinput_event *ev)
 }
 
 static void
-print_motion_event(struct libinput_event *ev)
+print_pointer_motion_event(struct libinput_event *ev)
 {
 	struct libinput_event_pointer *p = libinput_event_get_pointer_event(ev);
 	li_fixed_t x =	libinput_event_pointer_get_dx(p),
 		   y = libinput_event_pointer_get_dy(p);
 
 	print_event_time(libinput_event_pointer_get_time(p));
+
+	printf("%6.2f/%6.2f\n",
+	       li_fixed_to_double(x),
+	       li_fixed_to_double(y));
+}
+
+static void
+print_tablet_motion_event(struct libinput_event *ev)
+{
+	struct libinput_event_tablet *p = libinput_event_get_tablet_event(ev);
+	li_fixed_t x =	libinput_event_tablet_get_x(p),
+		   y = libinput_event_tablet_get_y(p);
+
+	print_event_time(libinput_event_tablet_get_time(p));
 
 	printf("%6.2f/%6.2f\n",
 	       li_fixed_to_double(x),
@@ -285,7 +308,7 @@ print_absmotion_event(struct libinput_event *ev)
 }
 
 static void
-print_button_event(struct libinput_event *ev)
+print_pointer_button_event(struct libinput_event *ev)
 {
 	struct libinput_event_pointer *p = libinput_event_get_pointer_event(ev);
 	enum libinput_button_state state;
@@ -300,7 +323,22 @@ print_button_event(struct libinput_event *ev)
 }
 
 static void
-print_axis_event(struct libinput_event *ev)
+print_tablet_button_event(struct libinput_event *ev)
+{
+	struct libinput_event_tablet *p = libinput_event_get_tablet_event(ev);
+	enum libinput_button_state state;
+
+	print_event_time(libinput_event_tablet_get_time(p));
+
+	state = libinput_event_tablet_get_button_state(p);
+	printf("%3d %s, seat count: %u\n",
+	       libinput_event_tablet_get_button(p),
+	       state == LIBINPUT_BUTTON_STATE_PRESSED ? "pressed" : "released",
+	       libinput_event_tablet_get_seat_button_count(p));
+}
+
+static void
+print_pointer_axis_event(struct libinput_event *ev)
 {
 	struct libinput_event_pointer *p = libinput_event_get_pointer_event(ev);
 	enum libinput_pointer_axis axis = libinput_event_pointer_get_axis(p);
@@ -314,24 +352,40 @@ print_axis_event(struct libinput_event *ev)
 	case LIBINPUT_POINTER_AXIS_HORIZONTAL_SCROLL:
 		ax = "hscroll";
 		break;
-	case LIBINPUT_POINTER_AXIS_DISTANCE:
-		ax = "distance";
-		break;
-	case LIBINPUT_POINTER_AXIS_PRESSURE:
-		ax = "pressure";
-		break;
-	case LIBINPUT_POINTER_AXIS_TILT_VERTICAL:
-		ax = "ytilt";
-		break;
-	case LIBINPUT_POINTER_AXIS_TILT_HORIZONTAL:
-		ax = "xtilt";
-		break;
 	default:
 		abort();
 	}
 
 	print_event_time(libinput_event_pointer_get_time(p));
 	val = libinput_event_pointer_get_axis_value(p);
+	printf("%s %.2f\n",
+	       ax, li_fixed_to_double(val));
+}
+
+static void
+print_tablet_axis_event(struct libinput_event *ev) {
+	struct libinput_event_tablet *t = libinput_event_get_tablet_event(ev);
+	enum libinput_tablet_axis axis = libinput_event_tablet_get_axis(t);
+	const char *ax;
+	li_fixed_t val;
+
+	switch (axis) {
+	case LIBINPUT_TABLET_AXIS_DISTANCE:
+		ax = "distance";
+		break;
+	case LIBINPUT_TABLET_AXIS_PRESSURE:
+		ax = "pressure";
+		break;
+	case LIBINPUT_TABLET_AXIS_TILT_VERTICAL:
+		ax = "ytilt";
+		break;
+	case LIBINPUT_TABLET_AXIS_TILT_HORIZONTAL:
+		ax = "xtilt";
+		break;
+	}
+
+	print_event_time(libinput_event_tablet_get_time(t));
+	val = libinput_event_tablet_get_axis_value(t, axis);
 	printf("%s %.2f\n",
 	       ax, li_fixed_to_double(val));
 }
@@ -348,8 +402,8 @@ print_axis_frame_event(struct libinput_event *ev)
 static void
 print_tool_update_event(struct libinput_event *ev)
 {
-	struct libinput_event_pointer *p = libinput_event_get_pointer_event(ev);
-	struct libinput_tool *tool = libinput_event_pointer_get_tool(p);
+	struct libinput_event_tablet *t = libinput_event_get_tablet_event(ev);
+	struct libinput_tool *tool = libinput_event_tablet_get_tool(t);
 	const char *tool_str;
 
 	switch (libinput_tool_get_type(tool)) {
@@ -384,7 +438,7 @@ print_tool_update_event(struct libinput_event *ev)
 		abort();
 	}
 
-	print_event_time(libinput_event_pointer_get_time(p));
+	print_event_time(libinput_event_tablet_get_time(t));
 	printf("%s (0x%x)", tool_str, libinput_tool_get_serial(tool));
 	printf("\n");
 }
@@ -435,22 +489,19 @@ handle_and_print_events(struct libinput *li)
 			print_key_event(ev);
 			break;
 		case LIBINPUT_EVENT_POINTER_MOTION:
-			print_motion_event(ev);
+			print_pointer_motion_event(ev);
 			break;
 		case LIBINPUT_EVENT_POINTER_MOTION_ABSOLUTE:
 			print_absmotion_event(ev);
 			break;
 		case LIBINPUT_EVENT_POINTER_BUTTON:
-			print_button_event(ev);
+			print_pointer_button_event(ev);
 			break;
 		case LIBINPUT_EVENT_POINTER_AXIS:
-			print_axis_event(ev);
+			print_pointer_axis_event(ev);
 			break;
 		case LIBINPUT_EVENT_POINTER_AXIS_FRAME:
 			print_axis_frame_event(ev);
-			break;
-		case LIBINPUT_EVENT_POINTER_TOOL_UPDATE:
-			print_tool_update_event(ev);
 			break;
 		case LIBINPUT_EVENT_TOUCH_DOWN:
 			print_touch_event_with_coords(ev);
@@ -466,6 +517,18 @@ handle_and_print_events(struct libinput *li)
 			break;
 		case LIBINPUT_EVENT_TOUCH_FRAME:
 			print_touch_event_without_coords(ev);
+			break;
+		case LIBINPUT_EVENT_TABLET_MOTION_ABSOLUTE:
+			print_tablet_motion_event(ev);
+			break;
+		case LIBINPUT_EVENT_TABLET_BUTTON:
+			print_tablet_button_event(ev);
+			break;
+		case LIBINPUT_EVENT_TABLET_AXIS:
+			print_tablet_axis_event(ev);
+			break;
+		case LIBINPUT_EVENT_TABLET_TOOL_UPDATE:
+			print_tool_update_event(ev);
 			break;
 		}
 
