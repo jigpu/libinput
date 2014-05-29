@@ -284,7 +284,7 @@ tablet_notify_button_mask(struct tablet_dispatch *tablet,
 			  uint32_t time,
 			  uint32_t buttons,
 			  uint32_t button_base,
-			  enum libinput_pointer_button_state state)
+			  enum libinput_button_state state)
 {
 	struct libinput_device *base = &device->base;
 	int32_t num_button = 0;
@@ -312,7 +312,7 @@ tablet_notify_buttons(struct tablet_dispatch *tablet,
 		      uint32_t time,
 		      bool post_check)
 {
-	enum libinput_pointer_button_state state;
+	enum libinput_button_state state;
 	int32_t pad_buttons, stylus_buttons;
 
 	if (tablet->state.pad_buttons == tablet->prev_state.pad_buttons &&
@@ -321,13 +321,13 @@ tablet_notify_buttons(struct tablet_dispatch *tablet,
 
 	if (post_check) {
 		/* Only notify button releases */
-		state = LIBINPUT_POINTER_BUTTON_STATE_RELEASED;
+		state = LIBINPUT_BUTTON_STATE_RELEASED;
 		pad_buttons = tablet_get_released_buttons(tablet, pad_buttons);
 		stylus_buttons =
 			tablet_get_released_buttons(tablet, stylus_buttons);
 	} else {
 		/* Only notify button presses */
-		state = LIBINPUT_POINTER_BUTTON_STATE_PRESSED;
+		state = LIBINPUT_BUTTON_STATE_PRESSED;
 		pad_buttons = tablet_get_pressed_buttons(tablet, pad_buttons);
 		stylus_buttons =
 			tablet_get_pressed_buttons(tablet, stylus_buttons);
