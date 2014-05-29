@@ -68,7 +68,7 @@ tablet_process_absolute(struct tablet_dispatch *tablet,
 	case ABS_RZ:
 	case ABS_WHEEL:
 	case ABS_THROTTLE:
-		set_bit(&tablet->axes[0], e->code);
+		set_bit(&tablet->updated_axes[0], e->code);
 		break;
 	default:
 		log_info("Unhandled ABS event code 0x%x\n", e->code);
@@ -178,14 +178,14 @@ sanitize_tablet_axes(struct tablet_dispatch *tablet)
 	pressure = tablet_get_axis(tablet, ABS_PRESSURE);
 
 	if (distance && pressure &&
-	    bit_is_set(&tablet->axes[0], ABS_DISTANCE) &&
-	    bit_is_set(&tablet->axes[0], ABS_PRESSURE) &&
+	    bit_is_set(&tablet->updated_axes[0], ABS_DISTANCE) &&
+	    bit_is_set(&tablet->updated_axes[0], ABS_PRESSURE) &&
 	    distance->value != 0 && pressure->value != 0) {
 		/* Keep distance and pressure mutually exclusive */
-		clear_bit(&tablet->axes[0], ABS_DISTANCE);
-	} else if (pressure && bit_is_set(&tablet->axes[0], ABS_PRESSURE) &&
+		clear_bit(&tablet->updated_axes[0], ABS_DISTANCE);
+	} else if (pressure && bit_is_set(&tablet->updated_axes[0], ABS_PRESSURE) &&
 		   !tablet_has_status(tablet, TABLET_STYLUS_IN_CONTACT)) {
-		clear_bit(&tablet->axes[0], ABS_PRESSURE);
+		clear_bit(&tablet->updated_axes[0], ABS_PRESSURE);
 	}
 }
 
@@ -209,22 +209,22 @@ tablet_check_notify_tool(struct tablet_dispatch *tablet,
 		return;
 	}
 
-	pointer_notify_tool_update(
+	tablet_notify_tool_update(
 		base, time, tablet->state.tool, tablet->state.tool_serial);
 }
 
-static enum libinput_pointer_axis
+static enum libinput_tablet_axis
 evcode_to_axis(uint32_t evcode)
 {
 	switch (evcode) {
 	case ABS_DISTANCE:
-		return LIBINPUT_POINTER_AXIS_DISTANCE;
+		return LIBINPUT_TABLET_AXIS_DISTANCE;
 	case ABS_PRESSURE:
-		return LIBINPUT_POINTER_AXIS_PRESSURE;
+		return LIBINPUT_TABLET_AXIS_PRESSURE;
 	case ABS_TILT_X:
-		return LIBINPUT_POINTER_AXIS_TILT_HORIZONTAL;
+		return LIBINPUT_TABLET_AXIS_TILT_HORIZONTAL;
 	case ABS_TILT_Y:
-		return LIBINPUT_POINTER_AXIS_TILT_VERTICAL;
+		return LIBINPUT_TABLET_AXIS_TILT_VERTICAL;
 	default:
 		return -1;
 	}
@@ -266,15 +266,29 @@ tablet_notify_axes(struct tablet_dispatch *tablet,
 	uint32_t * evcode;
 	ARRAY_FOR_EACH(check_axes, evcode) {
 		const struct input_absinfo * absinfo;
+		enum libinput_tablet_axis axis = evcode_to_axis(*evcode);
 
-		if (!bit_is_set(&tablet->axes[0], *evcode))
+		if (!bit_is_set(&tablet->updated_axes[0], *evcode))
 			continue;
 
 		absinfo = libevdev_get_abs_info(device->evdev, *evcode);
 
-		clear_bit(&tablet->axes[0], *evcode);
-		pointer_notify_axis(base, time, evcode_to_axis(*evcode),
-				    absinfo->value);
+		switch (*evcode) {
+		case ABS_PRESSURE:
+			tablet->axes[axis] = normalize_pressure(absinfo);
+			break;
+		case ABS_TILT_X:
+		case ABS_TILT_Y:
+			tablet->axes[axis] = normalize_tilt(absinfo);
+			break;
+		default:
+			tablet->axes[axis] = li_fixed_from_int(absinfo->value);
+		}
+
+		absinfo = libevdev_get_abs_info(device->evdev, *evcode);
+
+		clear_bit(&tablet->updated_axes[0], *evcode);
+		tablet_notify_axis(base, time, axis, &tablet->axes[0]);
 	}
 }
 
@@ -299,10 +313,10 @@ tablet_notify_button_mask(struct tablet_dispatch *tablet,
 		if (!enabled)
 			continue;
 
-		pointer_notify_button(base,
-				      time,
-				      num_button + button_base - 1,
-				      state);
+		tablet_notify_button(base,
+				     time,
+				     num_button + button_base - 1,
+				     state);
 	}
 }
 
@@ -359,7 +373,7 @@ tablet_flush(struct tablet_dispatch *tablet,
 			x = li_fixed_from_int(device->abs.x);
 			y = li_fixed_from_int(device->abs.y);
 
-			pointer_notify_motion_absolute(base, time, x, y);
+			tablet_notify_motion_absolute(base, time, x, y);
 			tablet_unset_status(tablet, TABLET_UPDATED);
 		}
 
