@@ -52,7 +52,7 @@ START_TEST(proximity_in_out)
 		if (libinput_event_get_type(event) == LIBINPUT_EVENT_TABLET_TOOL_UPDATE) {
 			have_tool_update++;
 			tablet_event = libinput_event_get_tablet_event(event);
-			ck_assert_int_eq(libinput_event_tablet_get_tool(tablet_event), LIBINPUT_TOOL_PEN);
+			ck_assert_int_eq(libinput_tool_get_type(libinput_event_tablet_get_tool(tablet_event)), LIBINPUT_TOOL_PEN);
 		}
 		libinput_event_destroy(event);
 	}
@@ -65,7 +65,7 @@ START_TEST(proximity_in_out)
 		if (libinput_event_get_type(event) == LIBINPUT_EVENT_TABLET_TOOL_UPDATE) {
 			have_tool_update++;
 			tablet_event = libinput_event_get_tablet_event(event);
-			ck_assert_int_eq(libinput_event_tablet_get_tool(tablet_event), LIBINPUT_TOOL_NONE);
+			ck_assert_int_eq(libinput_tool_get_type(libinput_event_tablet_get_tool(tablet_event)), LIBINPUT_TOOL_NONE);
 		}
 		libinput_event_destroy(event);
 	}
