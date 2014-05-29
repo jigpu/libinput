@@ -284,6 +284,7 @@ tablet_notify_axes(struct tablet_dispatch *tablet,
 	uint32_t * evcode;
 	ARRAY_FOR_EACH(check_axes, evcode) {
 		const struct input_absinfo * absinfo;
+		enum libinput_tablet_axis axis = evcode_to_axis(*evcode);
 
 		if (!bit_is_set(&tablet->updated_axes[0], *evcode))
 			continue;
@@ -292,24 +293,20 @@ tablet_notify_axes(struct tablet_dispatch *tablet,
 
 		switch (*evcode) {
 		case ABS_PRESSURE:
-			tablet->axes[LIBINPUT_TABLET_AXIS_PRESSURE] =
-				normalize_pressure(absinfo);
+			tablet->axes[axis] = normalize_pressure(absinfo);
 			break;
 		case ABS_TILT_X:
 		case ABS_TILT_Y:
-			tablet->axes[evcode_to_axis(*evcode)] =
-				normalize_tilt(absinfo);
+			tablet->axes[axis] = normalize_tilt(absinfo);
 			break;
 		default:
-			tablet->axes[evcode_to_axis(*evcode)] =
-				li_fixed_from_int(absinfo->value);
+			tablet->axes[axis] = li_fixed_from_int(absinfo->value);
 		}
 
 		absinfo = libevdev_get_abs_info(device->evdev, *evcode);
 
 		clear_bit(&tablet->updated_axes[0], *evcode);
-		tablet_notify_axis(base, time, evcode_to_axis(*evcode),
-				   &tablet->axes[0]);
+		tablet_notify_axis(base, time, axis, &tablet->axes[0]);
 	}
 }
 
