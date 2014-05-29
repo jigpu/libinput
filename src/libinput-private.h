@@ -198,7 +198,7 @@ void
 tablet_notify_axis(struct libinput_device *device,
 		   uint32_t time,
 		   enum libinput_tablet_axis axis,
-		   li_fixed_t value);
+		   li_fixed_t * axes);
 
 void
 tablet_notify_button(struct libinput_device *device,

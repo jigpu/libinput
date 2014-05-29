@@ -78,10 +78,7 @@ struct libinput_event_tablet {
 	uint32_t button;
 	uint32_t state;
 	uint32_t seat_button_count;
-	li_fixed_t tilt_vertical;
-	li_fixed_t tilt_horizontal;
-	li_fixed_t pressure;
-	li_fixed_t distance;
+	li_fixed_t * axes;
 	enum libinput_tablet_axis axis;
 	struct libinput_tool tool;
 };
@@ -532,18 +529,7 @@ LIBINPUT_EXPORT li_fixed_t
 libinput_event_tablet_get_axis_value(struct libinput_event_tablet *event,
 				     enum libinput_tablet_axis axis)
 {
-	switch (axis) {
-	case LIBINPUT_TABLET_AXIS_DISTANCE:
-		return event->distance;
-	case LIBINPUT_TABLET_AXIS_PRESSURE:
-		return event->pressure;
-	case LIBINPUT_TABLET_AXIS_TILT_VERTICAL:
-		return event->tilt_vertical;
-	case LIBINPUT_TABLET_AXIS_TILT_HORIZONTAL:
-		return event->tilt_horizontal;
-	}
-
-	return -1;
+	return event->axes[axis];
 }
 
 LIBINPUT_EXPORT uint32_t
@@ -1250,7 +1236,7 @@ void
 tablet_notify_axis(struct libinput_device *device,
 		   uint32_t time,
 		   enum libinput_tablet_axis axis,
-		   li_fixed_t value)
+		   li_fixed_t * axes)
 {
 	struct libinput_event_tablet *axis_event;
 
@@ -1260,23 +1246,9 @@ tablet_notify_axis(struct libinput_device *device,
 
 	*axis_event = (struct libinput_event_tablet) {
 		.time = time,
-		.axis = axis
+		.axis = axis,
+		.axes = &axes[0]
 	};
-
-	switch (axis) {
-	case LIBINPUT_TABLET_AXIS_DISTANCE:
-		axis_event->distance = value;
-		break;
-	case LIBINPUT_TABLET_AXIS_PRESSURE:
-		axis_event->pressure = value;
-		break;
-	case LIBINPUT_TABLET_AXIS_TILT_VERTICAL:
-		axis_event->tilt_vertical = value;
-		break;
-	case LIBINPUT_TABLET_AXIS_TILT_HORIZONTAL:
-		axis_event->tilt_horizontal = value;
-		break;
-	}
 
 	post_device_event(device,
 			  LIBINPUT_EVENT_TABLET_AXIS,
