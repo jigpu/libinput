@@ -24,6 +24,7 @@
 #include <assert.h>
 #include <math.h>
 #include <stdbool.h>
+#include <string.h>
 #include "evdev-tablet.h"
 
 #define tablet_set_status(tablet,s) (tablet->status |= (s));
@@ -252,6 +253,9 @@ tablet_notify_axes(struct tablet_dispatch *tablet,
 		   uint32_t time)
 {
 	struct libinput_device *base = &device->base;
+	unsigned char updated_axes[NCHARS(LIBINPUT_TABLET_AXIS_MAX + 1)];
+	bool axis_update_needed = false;
+	
 	/* A lot of the ABS axes don't apply to tablets, so we loop through the
 	 * values in here so we don't waste time checking axes that will never
 	 * update
@@ -263,6 +267,8 @@ tablet_notify_axes(struct tablet_dispatch *tablet,
 		ABS_TILT_Y
 	};
 
+	memset(&updated_axes, '\0', sizeof(updated_axes));
+
 	uint32_t * evcode;
 	ARRAY_FOR_EACH(check_axes, evcode) {
 		const struct input_absinfo * absinfo;
@@ -270,6 +276,8 @@ tablet_notify_axes(struct tablet_dispatch *tablet,
 
 		if (!bit_is_set(&tablet->updated_axes[0], *evcode))
 			continue;
+
+		axis_update_needed = true;
 
 		absinfo = libevdev_get_abs_info(device->evdev, *evcode);
 
@@ -287,9 +295,13 @@ tablet_notify_axes(struct tablet_dispatch *tablet,
 
 		absinfo = libevdev_get_abs_info(device->evdev, *evcode);
 
+		set_bit(updated_axes, axis);
 		clear_bit(&tablet->updated_axes[0], *evcode);
-		tablet_notify_axis(base, time, axis, &tablet->axes[0]);
 	}
+
+	if (axis_update_needed)
+		tablet_notify_axis_update(base, time, updated_axes,
+					  tablet->axes);
 }
 
 static void
