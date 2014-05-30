@@ -226,7 +226,7 @@ print_event_header(struct libinput_event *ev)
 	case LIBINPUT_EVENT_TABLET_BUTTON:
 		type = "TABLET_BUTTON";
 		break;
-	case LIBINPUT_EVENT_TABLET_AXIS:
+	case LIBINPUT_EVENT_TABLET_AXIS_UPDATE:
 		type = "TABLET_AXIS";
 		break;
 	}
@@ -363,31 +363,37 @@ print_pointer_axis_event(struct libinput_event *ev)
 }
 
 static void
-print_tablet_axis_event(struct libinput_event *ev) {
+print_tablet_axis_update_event(struct libinput_event *ev) {
 	struct libinput_event_tablet *t = libinput_event_get_tablet_event(ev);
-	enum libinput_tablet_axis axis = libinput_event_tablet_get_axis(t);
-	const char *ax;
-	li_fixed_t val;
 
-	switch (axis) {
-	case LIBINPUT_TABLET_AXIS_DISTANCE:
-		ax = "distance";
-		break;
-	case LIBINPUT_TABLET_AXIS_PRESSURE:
-		ax = "pressure";
-		break;
-	case LIBINPUT_TABLET_AXIS_TILT_VERTICAL:
-		ax = "ytilt";
-		break;
-	case LIBINPUT_TABLET_AXIS_TILT_HORIZONTAL:
-		ax = "xtilt";
-		break;
+	for (int a = 0; a <= LIBINPUT_TABLET_AXIS_MAX; a++) {
+		const char *ax;
+		li_fixed_t val;
+
+		if (!libinput_event_tablet_axis_updated(t, a))
+			continue;
+		
+		print_event_header(ev);
+
+		switch (a) {
+		case LIBINPUT_TABLET_AXIS_DISTANCE:
+			ax = "distance";
+			break;
+		case LIBINPUT_TABLET_AXIS_PRESSURE:
+			ax = "pressure";
+			break;
+		case LIBINPUT_TABLET_AXIS_TILT_VERTICAL:
+			ax = "ytilt";
+			break;
+		case LIBINPUT_TABLET_AXIS_TILT_HORIZONTAL:
+			ax = "xtilt";
+			break;
+		}
+		print_event_time(libinput_event_tablet_get_time(t));
+		val = libinput_event_tablet_get_axis_value(t, a);
+		printf("%s %.2f\n",
+		       ax, li_fixed_to_double(val));
 	}
-
-	print_event_time(libinput_event_tablet_get_time(t));
-	val = libinput_event_tablet_get_axis_value(t, axis);
-	printf("%s %.2f\n",
-	       ax, li_fixed_to_double(val));
 }
 
 static void
@@ -476,7 +482,10 @@ handle_and_print_events(struct libinput *li)
 
 	libinput_dispatch(li);
 	while ((ev = libinput_get_event(li))) {
-		print_event_header(ev);
+		if (libinput_event_get_type(ev) !=
+		    LIBINPUT_EVENT_TABLET_AXIS_UPDATE) {
+			print_event_header(ev);
+		}
 
 		switch (libinput_event_get_type(ev)) {
 		case LIBINPUT_EVENT_NONE:
@@ -524,8 +533,8 @@ handle_and_print_events(struct libinput *li)
 		case LIBINPUT_EVENT_TABLET_BUTTON:
 			print_tablet_button_event(ev);
 			break;
-		case LIBINPUT_EVENT_TABLET_AXIS:
-			print_tablet_axis_event(ev);
+		case LIBINPUT_EVENT_TABLET_AXIS_UPDATE:
+			print_tablet_axis_update_event(ev);
 			break;
 		case LIBINPUT_EVENT_TABLET_TOOL_UPDATE:
 			print_tool_update_event(ev);

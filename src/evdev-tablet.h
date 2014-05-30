@@ -49,7 +49,7 @@ struct tablet_dispatch {
 	struct device_state prev_state;
 
 	unsigned char updated_axes[NCHARS(ABS_MAX)];
-	li_fixed_t axes[LIBINPUT_TABLET_AXIS_MAX];
+	li_fixed_t axes[LIBINPUT_TABLET_AXIS_MAX + 1];
 	enum tablet_status status;
 	int naxes;
 };

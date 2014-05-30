@@ -141,7 +141,7 @@ enum libinput_tablet_axis {
 	LIBINPUT_TABLET_AXIS_PRESSURE = 1,
 	LIBINPUT_TABLET_AXIS_TILT_VERTICAL = 2,
 	LIBINPUT_TABLET_AXIS_TILT_HORIZONTAL = 3,
-	LIBINPUT_TABLET_AXIS_MAX = 4
+	LIBINPUT_TABLET_AXIS_MAX = 3
 };
 
 /**
@@ -209,7 +209,7 @@ enum libinput_event_type {
 	 */
 	LIBINPUT_EVENT_TABLET_MOTION_ABSOLUTE = 600,
 	LIBINPUT_EVENT_TABLET_BUTTON,
-	LIBINPUT_EVENT_TABLET_AXIS,
+	LIBINPUT_EVENT_TABLET_AXIS_UPDATE,
 	LIBINPUT_EVENT_TABLET_TOOL_UPDATE
 };
 
@@ -814,17 +814,20 @@ libinput_event_touch_get_base_event(struct libinput_event_touch *event);
 /**
  * @ingroup event_tablet
  *
- * Return the axis that triggered this event.
- * For tablet events that are not of type LIBINPUT_EVENT_TABLET_AXIS,
+ * Checks if an axis was updated in the last event.
+ * For tablet events that are not of type LIBINPUT_EVENT_TABLET_AXIS_UPDATE,
  * this function returns 0.
  *
  * @note It is an application bug to call this function for events other than
- * LIBINPUT_EVENT_TABLET_AXIS.
+ * LIBINPUT_EVENT_TABLET_AXIS_UPDATE.
  *
- * @return the axis triggering this event
+ * @param event The libinput tablet event
+ * @param axis The axis to check for updates
+ * @return 1 if the axis was updated
  */
-enum libinput_tablet_axis
-libinput_event_tablet_get_axis(struct libinput_event_tablet *event);
+int
+libinput_event_tablet_axis_updated(struct libinput_event_tablet *event,
+				   enum libinput_tablet_axis axis);
 
 /**
  * @ingroup event_tablet
@@ -838,11 +841,8 @@ libinput_event_tablet_get_axis(struct libinput_event_tablet *event);
  * LIBINPUT_TABLET_AXIS_TILT_HORIZONTAL, the value is a normalized value between
  * @ref LI_FIXED_MIN and @ref LI_FIXED_MAX.
  *
- * For tablet events that are not of type LIBINPUT_EVENT_TABLET_AXIS, this
+ * For tablet events that are not of type LIBINPUT_EVENT_TABLET_AXIS_UPDATE, this
  * function returns 0.
- *
- * @note It is an application bug to call this function for events other than
- * LIBINPUT_EVENT_TABLET_AXIS.
  *
  * @param event The libinput tablet event
  * @param axis The axis to retrieve the value of

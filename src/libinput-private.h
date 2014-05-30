@@ -195,10 +195,10 @@ touch_notify_frame(struct libinput_device *device,
 		   uint32_t time);
 
 void
-tablet_notify_axis(struct libinput_device *device,
-		   uint32_t time,
-		   enum libinput_tablet_axis axis,
-		   li_fixed_t * axes);
+tablet_notify_axis_update(struct libinput_device *device,
+			  uint32_t time,
+			  unsigned char * updated_axes,
+			  li_fixed_t * axes);
 
 void
 tablet_notify_button(struct libinput_device *device,
