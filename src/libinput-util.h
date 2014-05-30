@@ -76,8 +76,7 @@ int list_empty(const struct list *list);
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 
-#define CHAR_BITS (sizeof(char) * 8)
-#define NCHARS(x) (((x) + CHAR_BITS - 1) / CHAR_BITS)
+#define NCHARS(x) (((x) + 8 - 1) / 8)
 
 /*
  * This fixed point implementation is a verbatim copy from wayland-util.h from
@@ -117,19 +116,19 @@ zalloc(size_t size)
 static inline int
 bit_is_set(const unsigned char *array, int bit)
 {
-    return !!(array[bit / CHAR_BITS] & (1 << (bit % CHAR_BITS)));
+    return !!(array[bit / 8] & (1 << (bit % 8)));
 }
 
 static inline void
 set_bit(unsigned char *array, int bit)
 {
-    array[bit / CHAR_BITS] |= (1 << (bit % CHAR_BITS));
+    array[bit / 8] |= (1 << (bit % 8));
 }
 
 static inline void
 clear_bit(unsigned char *array, int bit)
 {
-    array[bit / CHAR_BITS] &= ~(1 << (bit % CHAR_BITS));
+    array[bit / 8] &= ~(1 << (bit % 8));
 }
 
 #endif /* LIBINPUT_UTIL_H */
