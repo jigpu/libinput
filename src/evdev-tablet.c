@@ -460,29 +460,6 @@ static struct evdev_dispatch_interface tablet_interface = {
 	tablet_destroy
 };
 
-static void
-tablet_init_axes(struct tablet_dispatch *tablet,
-		 struct evdev_device *device)
-{
-	if (libevdev_has_event_code(device->evdev, EV_ABS, ABS_DISTANCE)) {
-		tablet_add_axis(tablet, device, ABS_DISTANCE,
-				LIBINPUT_TABLET_AXIS_DISTANCE);
-	}
-
-	if (libevdev_has_event_code(device->evdev, EV_ABS, ABS_PRESSURE)) {
-		tablet_add_axis(tablet, device, ABS_PRESSURE,
-				LIBINPUT_TABLET_AXIS_PRESSURE);
-	}
-
-	if (libevdev_has_event_code(device->evdev, EV_ABS, ABS_TILT_X) &&
-	    libevdev_has_event_code(device->evdev, EV_ABS, ABS_TILT_Y)) {
-		tablet_add_axis(tablet, device, ABS_TILT_X,
-				LIBINPUT_TABLET_AXIS_TILT_HORIZONTAL);
-		tablet_add_axis(tablet, device, ABS_TILT_Y,
-				LIBINPUT_TABLET_AXIS_TILT_VERTICAL);
-	}
-}
-
 static int
 tablet_init(struct tablet_dispatch *tablet,
 	    struct evdev_device *device)
@@ -491,8 +468,6 @@ tablet_init(struct tablet_dispatch *tablet,
 	tablet->device = device;
 	tablet->status = TABLET_NONE;
 	tablet->state.tool = LIBINPUT_TOOL_NONE;
-
-	tablet_init_axes(tablet, device);
 
 	return 0;
 }
