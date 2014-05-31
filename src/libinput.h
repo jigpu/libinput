@@ -85,6 +85,13 @@ extern "C" {
  */
 typedef int32_t li_fixed_t;
 
+/*!
+ * @ingroup fixed_point
+ *
+ * The maximum decimal value that can be stored in a @ref li_fixed_t
+ */
+#define LI_FIXED_T_MAX (8388607.99609375)
+
 /**
  * Log priority for internal logging messages.
  */
