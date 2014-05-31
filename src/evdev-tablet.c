@@ -35,7 +35,9 @@
 #define tablet_get_released_buttons(tablet,field) \
 	(tablet->prev_state.field & ~(tablet->state.field))
 
-static struct axis_info *
+#define LI_FIXED_T_MAX (8388607.99609375)
+
+static inline const struct input_absinfo *
 tablet_get_axis(struct tablet_dispatch *tablet,
 		int32_t evcode)
 {
@@ -258,23 +260,37 @@ tablet_check_notify_tool(struct tablet_dispatch *tablet,
 		base, time, tablet->state.tool, tablet->state.tool_serial);
 }
 
-static double
-normalize_axis(const struct axis_info *axis_info)
+static enum libinput_pointer_axis
+evcode_to_axis(uint32_t evcode)
 {
-	double range = axis_info->abs.maximum - axis_info->abs.minimum;
-	double value = (axis_info->abs.value + axis_info->abs.minimum) / range;
-
-	switch (axis_info->axis) {
-	case LIBINPUT_POINTER_AXIS_TILT_VERTICAL:
-	case LIBINPUT_POINTER_AXIS_TILT_HORIZONTAL:
-		/* Map to the (-1,1) range */
-		value = (value * 2) - 1;
-		break;
+	switch (evcode) {
+	case ABS_DISTANCE:
+		return LIBINPUT_POINTER_AXIS_DISTANCE;
+	case ABS_PRESSURE:
+		return LIBINPUT_POINTER_AXIS_PRESSURE;
+	case ABS_TILT_X:
+		return LIBINPUT_POINTER_AXIS_TILT_HORIZONTAL;
+	case ABS_TILT_Y:
+		return LIBINPUT_POINTER_AXIS_TILT_VERTICAL;
 	default:
-		break;
+		return -1;
 	}
+}
 
-	return value;
+static inline li_fixed_t
+normalize_pressure(const struct input_absinfo * absinfo) {
+	double range = absinfo->maximum - absinfo->minimum;
+	double value = absinfo->value - absinfo->minimum;
+
+	return li_fixed_from_double(value * (LI_FIXED_T_MAX / range));
+}
+
+static inline li_fixed_t
+normalize_tilt(const struct input_absinfo * absinfo) {
+	double range = (absinfo->maximum - absinfo->minimum) / 2;
+	double value = absinfo->value - absinfo->minimum;
+
+	return li_fixed_from_double((value - range) * (LI_FIXED_T_MAX / range));
 }
 
 static void
@@ -287,18 +303,29 @@ tablet_notify_axes(struct tablet_dispatch *tablet,
 
 	for (i = 0; i < tablet->naxes; i++) {
 		struct axis_info *axis = &tablet->axes[i];
-		double value;
+		li_fixed_t axis_value;
 
 		if (!axis->updated)
 			continue;
 
+		switch (axis->code) {
+		case ABS_PRESSURE:
+			axis_value = normalize_pressure(&axis->abs);
+			break;
+		case ABS_TILT_X:
+		case ABS_TILT_Y:
+			axis_value = normalize_tilt(&axis->abs);
+			break;
+		default:
+			axis_value = li_fixed_from_int(axis->abs.value);
+		}
+
 		need_frame = 1;
 		axis->updated = 0;
-		value = normalize_axis(axis);
 		pointer_notify_axis(base,
 				    time,
 				    axis->axis,
-				    li_fixed_from_double(value));
+				    li_fixed_from_int(axis->abs.value));
 	}
 
 	if (need_frame)
