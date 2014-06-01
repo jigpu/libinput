@@ -69,7 +69,7 @@ tablet_process_absolute(struct tablet_dispatch *tablet,
 	case ABS_RZ:
 	case ABS_WHEEL:
 	case ABS_THROTTLE:
-		set_bit(&tablet->updated_axes[0], e->code);
+		set_bit(tablet->updated_axes, e->code);
 		break;
 	default:
 		log_info("Unhandled ABS event code 0x%x\n", e->code);
@@ -179,14 +179,14 @@ sanitize_tablet_axes(struct tablet_dispatch *tablet)
 	pressure = tablet_get_axis(tablet, ABS_PRESSURE);
 
 	if (distance && pressure &&
-	    bit_is_set(&tablet->updated_axes[0], ABS_DISTANCE) &&
-	    bit_is_set(&tablet->updated_axes[0], ABS_PRESSURE) &&
+	    bit_is_set(tablet->updated_axes, ABS_DISTANCE) &&
+	    bit_is_set(tablet->updated_axes, ABS_PRESSURE) &&
 	    distance->value != 0 && pressure->value != 0) {
 		/* Keep distance and pressure mutually exclusive */
-		clear_bit(&tablet->updated_axes[0], ABS_DISTANCE);
-	} else if (pressure && bit_is_set(&tablet->updated_axes[0], ABS_PRESSURE) &&
+		clear_bit(tablet->updated_axes, ABS_DISTANCE);
+	} else if (pressure && bit_is_set(tablet->updated_axes, ABS_PRESSURE) &&
 		   !tablet_has_status(tablet, TABLET_STYLUS_IN_CONTACT)) {
-		clear_bit(&tablet->updated_axes[0], ABS_PRESSURE);
+		clear_bit(tablet->updated_axes, ABS_PRESSURE);
 	}
 }
 
@@ -274,7 +274,7 @@ tablet_notify_axes(struct tablet_dispatch *tablet,
 		const struct input_absinfo * absinfo;
 		enum libinput_tablet_axis axis = evcode_to_axis(*evcode);
 
-		if (!bit_is_set(&tablet->updated_axes[0], *evcode))
+		if (!bit_is_set(tablet->updated_axes, *evcode))
 			continue;
 
 		axis_update_needed = true;
@@ -296,7 +296,7 @@ tablet_notify_axes(struct tablet_dispatch *tablet,
 		absinfo = libevdev_get_abs_info(device->evdev, *evcode);
 
 		set_bit(updated_axes, axis);
-		clear_bit(&tablet->updated_axes[0], *evcode);
+		clear_bit(tablet->updated_axes, *evcode);
 	}
 
 	if (axis_update_needed)
