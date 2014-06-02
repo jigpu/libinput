@@ -57,6 +57,14 @@ PKG_PROG_PKG_CONFIG()
 PKG_CHECK_MODULES(MTDEV, [mtdev >= 1.1.0])
 PKG_CHECK_MODULES(LIBUDEV, [libudev])
 PKG_CHECK_MODULES(LIBEVDEV, [libevdev >= 0.4])
+PKG_CHECK_MODULES(CURSES, [ncurses],
+		  [have_ncurses="yes"],
+		  [AC_MSG_WARN([ncurses not found - required for tablet-debug])])
+AM_CONDITIONAL([HAVE_NCURSES], [test "x$have_ncurses" = "xyes"])
+PKG_CHECK_MODULES(PANEL, [panel],
+		  [have_panel="yes"],
+		  [AC_MSG_WARN([ncurses panel library not found - required for tablet-debug])])
+AM_CONDITIONAL([HAVE_PANEL], [test "x$have_panel" = "xyes"])
 
 if test "x$GCC" = "xyes"; then
 	GCC_CXXFLAGS="-Wall -Wextra -Wno-unused-parameter -g -fvisibility=hidden"
