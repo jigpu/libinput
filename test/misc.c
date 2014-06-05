@@ -29,6 +29,7 @@
 #include <unistd.h>
 
 #include "litest.h"
+#include "misc.h"
 
 static int open_restricted(const char *path, int flags, void *data)
 {
@@ -371,12 +372,36 @@ START_TEST(event_conversion_touch)
 }
 END_TEST
 
+START_TEST(bitfield_helpers)
+{
+	/* This value has a bit set on all of the word boundaries we want to
+	 * test: 0, 1, 7, 8, 31, 32, and 33
+	 */
+	unsigned char read_bitfield[] = { 0x83, 0x1, 0x0, 0x80, 0x3 };
+	unsigned char write_bitfield[ARRAY_LENGTH(read_bitfield)];
+
+	int test_bits[] = { 0, 1, 7, 8, 31, 32, 33 };
+
+	for (unsigned int i = 0; i < ARRAY_LENGTH(test_bits); i++) {
+		ck_assert(bit_is_set(read_bitfield, test_bits[i]));
+		set_bit(write_bitfield, test_bits[i]);
+	}
+
+	/* Now check that the bitfield we wrote to came out to be the same as
+	 * the bitfield we were writing from */
+	for (unsigned int i = 0; i < ARRAY_LENGTH(read_bitfield); i++)
+		ck_assert(read_bitfield[i] == write_bitfield[i]);
+
+}
+END_TEST
+
 int main (int argc, char **argv) {
 	litest_add_no_device("events:conversion", event_conversion_device_notify);
 	litest_add_no_device("events:conversion", event_conversion_pointer);
 	litest_add_no_device("events:conversion", event_conversion_pointer_abs);
 	litest_add_no_device("events:conversion", event_conversion_key);
 	litest_add_no_device("events:conversion", event_conversion_touch);
+	litest_add_no_device("bitfield_helpers", bitfield_helpers);
 
 	return litest_run(argc, argv);
 }
