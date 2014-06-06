@@ -1,0 +1,195 @@
+/*
+ * Copyright © 2014 Red Hat, Inc.
+ *
+ * Permission to use, copy, modify, distribute, and sell this software and
+ * its documentation for any purpose is hereby granted without fee, provided
+ * that the above copyright notice appear in all copies and that both that
+ * copyright notice and this permission notice appear in supporting
+ * documentation, and that the name of the copyright holders not be used in
+ * advertising or publicity pertaining to distribution of the software
+ * without specific, written prior permission.  The copyright holders make
+ * no representations about the suitability of this software for any
+ * purpose.  It is provided "as is" without express or implied warranty.
+ *
+ * THE COPYRIGHT HOLDERS DISCLAIM ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+ * FITNESS, IN NO EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE FOR ANY
+ * SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER
+ * RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF
+ * CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+ * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+#include "config.h"
+
+#include <assert.h>
+#include <math.h>
+#include <stdbool.h>
+#include "evdev-tablet.h"
+
+#define tablet_set_status(tablet,s) (tablet->status |= (s));
+#define tablet_unset_status(tablet,s) (tablet->status &= ~(s));
+#define tablet_has_status(tablet,s) (!!(tablet->status & s))
+
+static void
+tablet_process_absolute(struct tablet_dispatch *tablet,
+			struct evdev_device *device,
+			struct input_event *e,
+			uint32_t time)
+{
+	switch (e->code) {
+	case ABS_X:
+	case ABS_Y:
+		set_bit(tablet->changed_axes, e->code);
+		tablet_set_status(tablet, TABLET_AXES_UPDATED);
+		break;
+	default:
+		log_info("Unhandled ABS event code 0x%x\n", e->code);
+		break;
+	}
+}
+
+static inline enum libinput_tablet_axis
+evcode_to_axis(const uint32_t evcode)
+{
+	enum libinput_tablet_axis axis;
+
+	switch (evcode) {
+	case ABS_X:
+		axis = LIBINPUT_TABLET_AXIS_X;
+		break;
+	case ABS_Y:
+		axis = LIBINPUT_TABLET_AXIS_Y;
+		break;
+	default:
+		axis = -1;
+		break;
+	}
+
+	return axis;
+}
+
+static void
+tablet_notify_axes(struct tablet_dispatch *tablet,
+		   struct evdev_device *device,
+		   uint32_t time)
+{
+	struct libinput_device *base = &device->base;
+	unsigned char changed_axes[NCHARS(LIBINPUT_TABLET_AXIS_CNT + 1)] = { 0 };
+	bool axis_update_needed = false;
+	
+	/* A lot of the ABS axes don't apply to tablets, so we loop through the
+	 * values in here so we don't waste time checking axes that will never
+	 * update
+	 */
+	uint32_t check_axes[] = {
+		ABS_X,
+		ABS_Y,
+	};
+
+	uint32_t *evcode;
+	ARRAY_FOR_EACH(check_axes, evcode) {
+		const struct input_absinfo *absinfo;
+		enum libinput_tablet_axis axis;
+
+		if (!bit_is_set(tablet->changed_axes, *evcode))
+			continue;
+
+		absinfo = libevdev_get_abs_info(device->evdev, *evcode);
+		axis = evcode_to_axis(*evcode);
+
+		switch (*evcode) {
+		case ABS_X:
+		case ABS_Y:
+			tablet->axes[axis] = absinfo->value;
+			break;
+		default:
+			log_bug_libinput("Unhandled axis update with evcode %x\n",
+					 *evcode);
+		}
+
+		absinfo = libevdev_get_abs_info(device->evdev, *evcode);
+
+		set_bit(changed_axes, axis);
+		clear_bit(tablet->changed_axes, *evcode);
+		axis_update_needed = true;
+	}
+
+	if (axis_update_needed)
+		tablet_notify_axis(base, time, changed_axes, tablet->axes);
+}
+
+static void
+tablet_flush(struct tablet_dispatch *tablet,
+	     struct evdev_device *device,
+	     uint32_t time)
+{
+	if (tablet_has_status(tablet, TABLET_AXES_UPDATED)) {
+		tablet_notify_axes(tablet, device, time);
+
+		tablet_unset_status(tablet, TABLET_AXES_UPDATED);
+	}
+}
+
+static void
+tablet_process(struct evdev_dispatch *dispatch,
+	       struct evdev_device *device,
+	       struct input_event *e,
+	       uint64_t time)
+{
+	struct tablet_dispatch *tablet =
+		(struct tablet_dispatch *)dispatch;
+
+	switch (e->type) {
+	case EV_ABS:
+		tablet_process_absolute(tablet, device, e, time);
+		break;
+	case EV_SYN:
+		tablet_flush(tablet, device, time);
+		break;
+	default:
+		log_error("Unexpected event type 0x%x\n", e->type);
+		break;
+	}
+}
+
+static void
+tablet_destroy(struct evdev_dispatch *dispatch)
+{
+	struct tablet_dispatch *tablet =
+		(struct tablet_dispatch*)dispatch;
+
+	free(tablet);
+}
+
+static struct evdev_dispatch_interface tablet_interface = {
+	tablet_process,
+	tablet_destroy
+};
+
+static int
+tablet_init(struct tablet_dispatch *tablet,
+	    struct evdev_device *device)
+{
+	tablet->base.interface = &tablet_interface;
+	tablet->device = device;
+	tablet->status = TABLET_NONE;
+
+	return 0;
+}
+
+struct evdev_dispatch *
+evdev_tablet_create(struct evdev_device *device)
+{
+	struct tablet_dispatch *tablet;
+
+	tablet = zalloc(sizeof *tablet);
+	if (!tablet)
+		return NULL;
+
+	if (tablet_init(tablet, device) != 0) {
+		tablet_destroy(&tablet->base);
+		return NULL;
+	}
+
+	return  &tablet->base;
+}

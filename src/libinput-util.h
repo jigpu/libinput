@@ -76,6 +76,8 @@ int list_empty(const struct list *list);
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 
+#define NCHARS(x) (((x) + 7) / 8)
+
 /*
  * This fixed point implementation is a verbatim copy from wayland-util.h from
  * the Wayland project, with the wl_ prefix renamed li_.

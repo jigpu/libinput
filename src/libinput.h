@@ -153,6 +153,18 @@ enum libinput_pointer_axis {
 };
 
 /**
+ * @ingroup device
+ *
+ * Available axis types for a device. It must have the @ref
+ * LIBINPUT_DEVICE_CAP_STYLUS capability.
+ */
+enum libinput_tablet_axis {
+	LIBINPUT_TABLET_AXIS_X = 0,
+	LIBINPUT_TABLET_AXIS_Y = 1,
+	LIBINPUT_TABLET_AXIS_CNT = 1,
+};
+
+/**
  * @ingroup base
  *
  * Event type for events returned by libinput_get_event().
@@ -196,7 +208,9 @@ enum libinput_event_type {
 	 * Signals the end of a set of touchpoints at one device sample
 	 * time. This event has no coordinate information attached.
 	 */
-	LIBINPUT_EVENT_TOUCH_FRAME
+	LIBINPUT_EVENT_TOUCH_FRAME,
+
+	LIBINPUT_EVENT_TABLET_AXIS = 600,
 };
 
 struct libinput;
@@ -219,6 +233,15 @@ struct libinput_event_pointer;
  * LIBINPUT_EVENT_TOUCH_FRAME.
  */
 struct libinput_event_touch;
+
+/**
+ * @ingroup event_tablet
+ * @struct libinput_event_tablet
+ *
+ * Tablet event representing an axis update, button press, or tool update. Valid
+ * event types for this event are LIBINPUT_TABLET_AXIS.
+ */
+struct libinput_event_tablet;
 
 /**
  * @defgroup fixed_point Fixed point utilities
@@ -348,6 +371,19 @@ libinput_event_get_keyboard_event(struct libinput_event *event);
  */
 struct libinput_event_touch *
 libinput_event_get_touch_event(struct libinput_event *event);
+
+/**
+ * @ingroup event
+ *
+ * Return the tablet event that is this input event. If the event type does not
+ * match the tablet event types, this function returns NULL.
+ *
+ * The inverse of this function is libinput_event_tablet_get_base_event().
+ *
+ * @return A touch event, or NULL for other events
+ */
+struct libinput_event_tablet *
+libinput_event_get_tablet_event(struct libinput_event *event);
 
 /**
  * @ingroup event
@@ -776,6 +812,87 @@ libinput_event_touch_get_y_transformed(struct libinput_event_touch *event,
  */
 struct libinput_event *
 libinput_event_touch_get_base_event(struct libinput_event_touch *event);
+
+/** @defgroup event_tablet Tablet events
+ *
+ * Events that come from tablet devices.
+ */
+
+/**
+ * @ingroup event_tablet
+ *
+ * Checks if an axis was updated in the last event or return 0 otherwise.
+ * For tablet events that are not of type LIBINPUT_EVENT_TABLET_AXIS,
+ * this function returns 0.
+ *
+ * @note It is an application bug to call this function for events other than
+ * LIBINPUT_EVENT_TABLET_AXIS.
+ *
+ * @param event The libinput tablet event
+ * @param axis The axis to check for updates
+ * @return 1 if the axis was updated
+ */
+int
+libinput_event_tablet_axis_has_changed(struct libinput_event_tablet *event,
+				       enum libinput_tablet_axis axis);
+
+/**
+ * @ingroup event_tablet
+ *
+ * Return the axis value of a given axis for a tablet. The interpretation of the
+ * value is dependent on the axis:
+ * - LIBINPUT_TABLET_AXIS_X and LIBINPUT_TABLET_AXIS_Y - the raw X and Y
+ *   cooirdinates of the tablet tool. By default these are not transformed,
+ *   however libinput provides @ref libinput_event_tablet_get_x_transformed and
+ *   @ref libinput_event_tablet_get_y_transformed for transforming each
+ *   respective axis value
+ *
+ * For tablet events that are not of type LIBINPUT_EVENT_TABLET_AXIS, this
+ * function returns 0.
+ *
+ * @param event The libinput tablet event
+ * @param axis The axis to retrieve the value of
+ * @return The current value of the the axis
+ */
+double
+libinput_event_tablet_get_axis_value(struct libinput_event_tablet *event,
+				     enum libinput_tablet_axis axis);
+
+/**
+ * @ingroup event_tablet
+ *
+ * Return the current absolute x coordinate of the tablet event, transformed to
+ * screen coordinates.
+ *
+ * @param event The libinput tablet event
+ * @param width The current output screen width
+ * @return the current absolute x coordinate transformed to a screen coordinate
+ */
+double
+libinput_event_tablet_get_x_transformed(struct libinput_event_tablet *event,
+					uint32_t width);
+
+/**
+ * @ingroup event_tablet
+ *
+ * Return the current absolute y coordinate of the tablet event, transformed to
+ * screen coordinates.
+ *
+ * @param event The libinput tablet event
+ * @param height The current output screen height
+ * @return the current absolute y coordinate transformed to a screen coordinate
+ */
+double
+libinput_event_tablet_get_y_transformed(struct libinput_event_tablet *event,
+					uint32_t height);
+/**
+ * @ingroup event_tablet
+ *
+ * @param event The libinput tablet event
+ * @return The event time for this event
+ */
+uint32_t
+libinput_event_tablet_get_time(struct libinput_event_tablet *event);
 
 /**
  * @defgroup base Initialization and manipulation of libinput contexts
