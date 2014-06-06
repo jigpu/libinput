@@ -77,6 +77,13 @@ struct libinput_device {
 	int refcount;
 };
 
+struct libinput_tool {
+	struct list link;
+	uint32_t serial;
+	enum libinput_tool_type type;
+	int refcount;
+};
+
 typedef void (*libinput_source_dispatch_t)(void *data);
 
 struct libinput_source;
