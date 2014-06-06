@@ -47,6 +47,8 @@ tablet_process_absolute(struct tablet_dispatch *tablet,
 	switch (e->code) {
 	case ABS_X:
 	case ABS_Y:
+		tablet_unset_status(tablet, TABLET_TOOL_LEFT_PROXIMITY);
+
 		axis = evcode_to_axis(e->code);
 		if (axis == LIBINPUT_TABLET_AXIS_NONE) {
 			log_bug_libinput("Invalid ABS event code %#x\n",
@@ -77,6 +79,8 @@ tablet_update_tool(struct tablet_dispatch *tablet,
 		tablet->current_tool_type = tool;
 		tablet_set_status(tablet, TABLET_TOOL_UPDATED);
 	}
+	else if (!enabled)
+		tablet_set_status(tablet, TABLET_TOOL_LEAVING_PROXIMITY);
 }
 
 static void
@@ -190,13 +194,32 @@ tablet_flush(struct tablet_dispatch *tablet,
 	     struct evdev_device *device,
 	     uint32_t time)
 {
-	if (tablet_has_status(tablet, TABLET_TOOL_UPDATED))
-		tablet_notify_tool(tablet, device, time);
+	bool proximity_out_needed = false;
 
-	if (tablet_has_status(tablet, TABLET_AXES_UPDATED)) {
-		tablet_notify_axes(tablet, device, time);
+	if (tablet_has_status(tablet, TABLET_TOOL_LEAVING_PROXIMITY)) {
+		proximity_out_needed = true;
+
+		memset(&tablet->changed_axes, 0, sizeof(tablet->changed_axes));
+		memset(&tablet->axes, 0, sizeof(tablet->axes));
+
 		tablet_unset_status(tablet, TABLET_AXES_UPDATED);
+		tablet_unset_status(tablet, TABLET_TOOL_LEAVING_PROXIMITY);
+		tablet_set_status(tablet, TABLET_TOOL_LEFT_PROXIMITY);
+	} else {
+		if (tablet_has_status(tablet, TABLET_TOOL_UPDATED)) {
+			tablet_notify_tool(tablet, device, time);
+			tablet_unset_status(tablet, TABLET_TOOL_UPDATED);
+		}
+
+		if (tablet_has_status(tablet, TABLET_AXES_UPDATED)) {
+			tablet_notify_axes(tablet, device, time);
+			tablet_unset_status(tablet, TABLET_AXES_UPDATED);
+		}
 	}
+
+	/* We want button releases to be sent before the proximity out event */
+	if (proximity_out_needed)
+		tablet_notify_proximity_out(&device->base, time);
 }
 
 static void

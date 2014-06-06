@@ -29,7 +29,9 @@
 enum tablet_status {
 	TABLET_NONE = 0,
 	TABLET_AXES_UPDATED = 1 << 0,
-	TABLET_TOOL_UPDATED = 1 << 1
+	TABLET_TOOL_UPDATED = 1 << 1,
+	TABLET_TOOL_LEAVING_PROXIMITY = 1 << 2,
+	TABLET_TOOL_LEFT_PROXIMITY = 1 << 3
 };
 
 struct tablet_dispatch {
