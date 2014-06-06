@@ -197,6 +197,11 @@ tablet_notify_axis(struct libinput_device *device,
 		   double *axes);
 
 void
+tablet_notify_tool_update(struct libinput_device *device,
+			  uint32_t time,
+			  struct libinput_tool *tool);
+
+void
 touch_notify_frame(struct libinput_device *device,
 		   uint32_t time);
 #endif /* LIBINPUT_PRIVATE_H */

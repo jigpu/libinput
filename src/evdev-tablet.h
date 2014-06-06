@@ -31,12 +31,23 @@ enum tablet_status {
 	TABLET_AXES_UPDATED = 1 << 0,
 };
 
+struct device_state {
+	enum libinput_tool_type tool_type;
+	uint32_t tool_serial;
+};
+
 struct tablet_dispatch {
 	struct evdev_dispatch base;
 	struct evdev_device *device;
 	enum tablet_status status;
 	unsigned char changed_axes[NCHARS(ABS_MAX)];
 	double axes[LIBINPUT_TABLET_AXIS_CNT + 1];
+
+	struct device_state state;
+	struct device_state prev_state;
+
+	struct libinput_tool *current_tool;
+	struct list tool_list;
 };
 
 #endif
