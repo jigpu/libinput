@@ -30,9 +30,12 @@ enum tablet_status {
 	TABLET_NONE = 0,
 	TABLET_AXES_UPDATED = 1 << 0,
 	TABLET_TOOL_LEFT_PROXIMITY = 1 << 1,
+	TABLET_STYLUS_IN_CONTACT = 1 << 2,
 };
 
 struct device_state {
+	uint32_t pad_buttons; /* bitmask of evcode - BTN_MISC */
+	uint32_t stylus_buttons; /* bitmask of evcode - BTN_TOUCH */
 	enum libinput_tool_type tool_type;
 	uint32_t tool_serial;
 };
