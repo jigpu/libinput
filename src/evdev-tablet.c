@@ -24,6 +24,7 @@
 #include <assert.h>
 #include <math.h>
 #include <stdbool.h>
+#include <string.h>
 #include "evdev-tablet.h"
 
 #define tablet_set_status(tablet,s) (tablet->status |= (s));
@@ -77,8 +78,10 @@ tablet_update_tool(struct tablet_dispatch *tablet,
 
 	if (enabled && tool != tablet->state.tool_type)
 		tablet->state.tool_type = tool;
-	else if (!enabled && tool == tablet->state.tool_type)
+	else if (!enabled && tool == tablet->state.tool_type) {
 		tablet->state.tool_type = LIBINPUT_TOOL_NONE;
+		tablet_set_status(tablet, TABLET_TOOL_LEFT_PROXIMITY);
+	}
 }
 
 static void
@@ -173,24 +176,15 @@ tablet_process_misc(struct tablet_dispatch *tablet,
 static void
 tablet_check_notify_tool(struct tablet_dispatch *tablet,
 			 struct evdev_device *device,
-			 uint32_t time,
-			 bool post_check)
+			 uint32_t time)
 {
 	struct libinput_device *base = &device->base;
 	struct libinput_tool *tool;
 	struct libinput_tool *new_tool = NULL;
 
-	if (tablet->state.tool_type == tablet->prev_state.tool_type)
+	if (tablet->state.tool_type == tablet->prev_state.tool_type ||
+	    tablet->state.tool_type == LIBINPUT_TOOL_NONE)
 		return;
-
-	if (tablet->state.tool_type == LIBINPUT_TOOL_NONE) {
-		/* Wait for post-check */
-		if (post_check)
-			return;
-	} else if (post_check) {
-		/* Already handled in pre-check */
-		return;
-	}
 
 	/* Check if we already have the tool in our list of tools */
 	list_for_each(tool, &tablet->tool_list, link) {
@@ -222,17 +216,22 @@ tablet_flush(struct tablet_dispatch *tablet,
 	     struct evdev_device *device,
 	     uint32_t time)
 {
-	/* pre-update notifications */
-	tablet_check_notify_tool(tablet, device, time, false);
+	if (tablet_has_status(tablet, TABLET_TOOL_LEFT_PROXIMITY)) {
+		tablet_notify_proximity_out(&device->base, time);
 
-	if (tablet_has_status(tablet, TABLET_AXES_UPDATED)) {
-		tablet_notify_axes(tablet, device, time);
+		memset(&tablet->changed_axes, 0, sizeof(tablet->changed_axes));
+		memset(&tablet->axes, 0, sizeof(tablet->axes));
 
-		tablet_unset_status(tablet, TABLET_AXES_UPDATED);
+		tablet->status = TABLET_NONE;
+	} else {
+		tablet_check_notify_tool(tablet, device, time);
+
+		if (tablet_has_status(tablet, TABLET_AXES_UPDATED)) {
+			tablet_notify_axes(tablet, device, time);
+
+			tablet_unset_status(tablet, TABLET_AXES_UPDATED);
+		}
 	}
-
-	/* post-update notifications */
-	tablet_check_notify_tool(tablet, device, time, true);
 
 	/* replace previous state */
 	tablet->prev_state = tablet->state;
@@ -246,6 +245,12 @@ tablet_process(struct evdev_dispatch *dispatch,
 {
 	struct tablet_dispatch *tablet =
 		(struct tablet_dispatch *)dispatch;
+
+	/* If the tablet is out of proximity, ignore all events until we
+	 * synchronize */
+	if (tablet_has_status(tablet, TABLET_TOOL_LEFT_PROXIMITY) &&
+	    e->type != EV_SYN)
+		return;
 
 	switch (e->type) {
 	case EV_ABS:

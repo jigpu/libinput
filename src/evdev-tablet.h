@@ -29,6 +29,7 @@
 enum tablet_status {
 	TABLET_NONE = 0,
 	TABLET_AXES_UPDATED = 1 << 0,
+	TABLET_TOOL_LEFT_PROXIMITY = 1 << 1,
 };
 
 struct device_state {
