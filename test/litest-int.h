@@ -94,6 +94,8 @@ struct litest_device_interface {
 	 */
 	struct input_event *tablet_proximity_in_events;
 	struct input_event *tablet_proximity_out_events;
+	struct input_event *tablet_proximity_out_release_buttons;
+	struct input_event *tablet_proximity_out_clear_axes;
 	struct input_event *tablet_motion_events;
 
 	int min[2];

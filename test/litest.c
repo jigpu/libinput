@@ -753,6 +753,32 @@ litest_tablet_proximity_out(struct litest_device *d)
 }
 
 void
+litest_tablet_proximity_out_release_buttons(struct litest_device *d, int x, int y, struct axis_replacement *axes)
+{
+	struct input_event *ev;
+
+	ev = d->interface->tablet_proximity_out_release_buttons;
+	while (ev && (int16_t)ev->type != -1 && (int16_t)ev->code != -1) {
+		int value = auto_assign_tablet_value(d, ev, x, y, axes);
+		litest_event(d, ev->type, ev->code, value);
+		ev++;
+	}
+}
+
+void
+litest_tablet_proximity_out_clear_axes(struct litest_device *d, int x, int y, struct axis_replacement *axes)
+{
+	struct input_event *ev;
+
+	ev = d->interface->tablet_proximity_out_clear_axes;
+	while (ev && (int16_t)ev->type != -1 && (int16_t)ev->code != -1) {
+		int value = auto_assign_tablet_value(d, ev, x, y, axes);
+		litest_event(d, ev->type, ev->code, value);
+		ev++;
+	}
+}
+
+void
 litest_tablet_motion(struct litest_device *d, int x, int y, struct axis_replacement *axes)
 {
 	struct input_event *ev;

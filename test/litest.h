@@ -126,6 +126,12 @@ void litest_tablet_proximity_in(struct litest_device *d,
 				int x, int y,
 				struct axis_replacement *axes);
 void litest_tablet_proximity_out(struct litest_device *d);
+void litest_tablet_proximity_out_release_buttons(struct litest_device *d,
+						 int x, int y,
+						 struct axis_replacement *axes);
+void litest_tablet_proximity_out_clear_axes(struct litest_device *d,
+					    int x, int y,
+					    struct axis_replacement *axes);
 void litest_tablet_motion(struct litest_device *d,
 			  int x, int y,
 			  struct axis_replacement *axes);
