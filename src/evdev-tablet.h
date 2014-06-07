@@ -33,7 +33,8 @@ enum tablet_status {
 	TABLET_TOOL_UPDATED = 1 << 1,
 	TABLET_TOOL_LEAVING_PROXIMITY = 1 << 2,
 	TABLET_BUTTONS_PRESSED = 1 << 3,
-	TABLET_BUTTONS_RELEASED = 1 << 4
+	TABLET_BUTTONS_RELEASED = 1 << 4,
+	TABLET_STYLUS_IN_CONTACT = 1 << 5
 };
 
 struct button_state {
@@ -67,6 +68,18 @@ evcode_to_axis(const uint32_t evcode)
 		break;
 	case ABS_Y:
 		axis = LIBINPUT_TABLET_AXIS_Y;
+		break;
+	case ABS_DISTANCE:
+		axis = LIBINPUT_TABLET_AXIS_DISTANCE;
+		break;
+	case ABS_PRESSURE:
+		axis = LIBINPUT_TABLET_AXIS_PRESSURE;
+		break;
+	case ABS_TILT_X:
+		axis = LIBINPUT_TABLET_AXIS_TILT_HORIZONTAL;
+		break;
+	case ABS_TILT_Y:
+		axis = LIBINPUT_TABLET_AXIS_TILT_VERTICAL;
 		break;
 	default:
 		axis = LIBINPUT_TABLET_AXIS_NONE;
