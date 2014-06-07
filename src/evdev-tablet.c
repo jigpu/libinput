@@ -52,8 +52,13 @@ tablet_process_absolute(struct tablet_dispatch *tablet,
 	switch (e->code) {
 	case ABS_X:
 	case ABS_Y:
+	case ABS_PRESSURE:
+	case ABS_TILT_X:
+	case ABS_TILT_Y:
 		tablet_unset_status(tablet, TABLET_TOOL_LEFT_PROXIMITY);
 
+		/* Fall through */
+	case ABS_DISTANCE:
 		axis = evcode_to_axis(e->code);
 		if (axis == LIBINPUT_TABLET_AXIS_NONE) {
 			log_bug_libinput("Invalid ABS event code %#x\n",
@@ -88,6 +93,23 @@ tablet_update_tool(struct tablet_dispatch *tablet,
 		tablet_set_status(tablet, TABLET_TOOL_LEAVING_PROXIMITY);
 }
 
+static inline double
+normalize_pressure(const struct input_absinfo * absinfo) {
+	double range = absinfo->maximum - absinfo->minimum + 1;
+	double value = (absinfo->value + absinfo->minimum) / range;
+
+	return value;
+}
+
+static inline double
+normalize_tilt(const struct input_absinfo * absinfo) {
+	double range = absinfo->maximum - absinfo->minimum + 1;
+	double value = (absinfo->value + absinfo->minimum) / range;
+
+	/* Map to the (-1, 1) range */
+	return (value * 2) - 1;
+}
+
 static void
 tablet_notify_axes(struct tablet_dispatch *tablet,
 		   struct evdev_device *device,
@@ -104,7 +126,15 @@ tablet_notify_axes(struct tablet_dispatch *tablet,
 		switch (a) {
 		case LIBINPUT_TABLET_AXIS_X:
 		case LIBINPUT_TABLET_AXIS_Y:
+		case LIBINPUT_TABLET_AXIS_DISTANCE:
 			tablet->axes[a] = tablet->absinfo[a]->value;
+			break;
+		case LIBINPUT_TABLET_AXIS_PRESSURE:
+			tablet->axes[a] = normalize_pressure(tablet->absinfo[a]);
+			break;
+		case LIBINPUT_TABLET_AXIS_TILT_VERTICAL:
+		case LIBINPUT_TABLET_AXIS_TILT_HORIZONTAL:
+			tablet->axes[a] = normalize_tilt(tablet->absinfo[a]);
 			break;
 		default:
 			log_bug_libinput("Unhandled axis update with axis code "
@@ -287,6 +317,34 @@ tablet_notify_buttons(struct tablet_dispatch *tablet,
 }
 
 static void
+sanitize_tablet_axes(struct tablet_dispatch *tablet)
+{
+	const struct input_absinfo *distance,
+	                           *pressure;
+
+	distance = tablet->absinfo[LIBINPUT_TABLET_AXIS_DISTANCE];
+	pressure = tablet->absinfo[LIBINPUT_TABLET_AXIS_PRESSURE];
+
+	/* Keep distance and pressure mutually exclusive. In addition, filter
+	 * out invalid distance events that can occur when the tablet tool is
+	 * close enough for the tablet to detect that's something's there, but
+	 * not close enough for it to actually receive data from the tool
+	 * properly
+	 */
+	if (bit_is_set(tablet->changed_axes, LIBINPUT_TABLET_AXIS_DISTANCE) &&
+	    ((bit_is_set(tablet->changed_axes, LIBINPUT_TABLET_AXIS_PRESSURE) &&
+	      distance->value != 0 && pressure->value != 0) ||
+	     (tablet_has_status(tablet, TABLET_TOOL_LEFT_PROXIMITY) &&
+	      (distance->value == distance->minimum ||
+	       distance->value == distance->maximum)))) {
+		clear_bit(tablet->changed_axes, LIBINPUT_TABLET_AXIS_DISTANCE);
+	} else if (bit_is_set(tablet->changed_axes, LIBINPUT_TABLET_AXIS_PRESSURE) &&
+		   !tablet_has_status(tablet, TABLET_STYLUS_IN_CONTACT)) {
+		clear_bit(tablet->changed_axes, LIBINPUT_TABLET_AXIS_PRESSURE);
+	}
+}
+
+static void
 tablet_flush(struct tablet_dispatch *tablet,
 	     struct evdev_device *device,
 	     uint32_t time)
@@ -313,6 +371,7 @@ tablet_flush(struct tablet_dispatch *tablet,
 		}
 
 		if (tablet_has_status(tablet, TABLET_AXES_UPDATED)) {
+			sanitize_tablet_axes(tablet);
 			tablet_notify_axes(tablet, device, time);
 			tablet_unset_status(tablet, TABLET_AXES_UPDATED);
 		}
