@@ -31,7 +31,15 @@ enum tablet_status {
 	TABLET_AXES_UPDATED = 1 << 0,
 	TABLET_TOOL_UPDATED = 1 << 1,
 	TABLET_TOOL_LEAVING_PROXIMITY = 1 << 2,
-	TABLET_TOOL_LEFT_PROXIMITY = 1 << 3
+	TABLET_TOOL_LEFT_PROXIMITY = 1 << 3,
+	TABLET_BUTTONS_PRESSED = 1 << 4,
+	TABLET_BUTTONS_RELEASED = 1 << 5,
+	TABLET_STYLUS_IN_CONTACT = 1 << 6
+};
+
+struct button_state {
+	uint32_t pad_buttons; /* bitmask of evcode - BTN_MISC */
+	uint32_t stylus_buttons; /* bitmask of evcode - BTN_TOUCH */
 };
 
 struct tablet_dispatch {
@@ -41,6 +49,9 @@ struct tablet_dispatch {
 	unsigned char changed_axes[NCHARS(LIBINPUT_TABLET_AXIS_CNT)];
 	const struct input_absinfo *absinfo[LIBINPUT_TABLET_AXIS_CNT];
 	double axes[LIBINPUT_TABLET_AXIS_CNT];
+
+	struct button_state button_state;
+	struct button_state prev_button_state;
 
 	enum libinput_tool_type current_tool_type;
 	uint32_t current_tool_serial;
