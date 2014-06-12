@@ -793,6 +793,18 @@ litest_tablet_motion(struct litest_device *d, int x, int y, struct axis_replacem
 }
 
 void
+litest_tablet_bad_distance_events(struct litest_device *d)
+{
+	struct input_event *ev;
+
+	ev = d->interface->tablet_bad_distance_events;
+	while (ev && (int16_t)ev->type != -1 && (int16_t)ev->code != -1) {
+		litest_event(d, ev->type, ev->code, ev->value);
+		ev++;
+	}
+}
+
+void
 litest_button_click(struct litest_device *d, unsigned int button, bool is_press)
 {
 

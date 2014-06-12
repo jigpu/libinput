@@ -133,6 +133,7 @@ void litest_tablet_proximity_out(struct litest_device *d);
 void litest_tablet_motion(struct litest_device *d,
 			  int x, int y,
 			  struct axis_replacement *axes);
+void litest_tablet_bad_distance_events(struct litest_device *d);
 void litest_button_click(struct litest_device *d,
 			 unsigned int button,
 			 bool is_press);
