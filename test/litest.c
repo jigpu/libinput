@@ -805,6 +805,34 @@ litest_tablet_bad_distance_events(struct litest_device *d)
 }
 
 void
+litest_tablet_normalization_min(struct litest_device *d, int x, int y, struct axis_replacement *axes)
+{
+	struct input_event *ev;
+
+	ev = d->interface->tablet_normalization_min_events;
+	while (ev && (int16_t)ev->type != -1 && (int16_t)ev->code != -1) {
+		int value = auto_assign_tablet_value(d, ev, x, y, axes);
+		if (!tablet_ignore_event(ev, value))
+			litest_event(d, ev->type, ev->code, value);
+		ev++;
+	}
+}
+
+void
+litest_tablet_normalization_max(struct litest_device *d, int x, int y, struct axis_replacement *axes)
+{
+	struct input_event *ev;
+
+	ev = d->interface->tablet_normalization_max_events;
+	while (ev && (int16_t)ev->type != -1 && (int16_t)ev->code != -1) {
+		int value = auto_assign_tablet_value(d, ev, x, y, axes);
+		if (!tablet_ignore_event(ev, value))
+			litest_event(d, ev->type, ev->code, value);
+		ev++;
+	}
+}
+
+void
 litest_button_click(struct litest_device *d, unsigned int button, bool is_press)
 {
 

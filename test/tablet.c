@@ -287,12 +287,98 @@ START_TEST(bad_distance_events)
 }
 END_TEST
 
+START_TEST(normalization)
+{
+	struct litest_device *dev = litest_current_device();
+	struct libinput *li = dev->libinput;
+	struct libinput_event_tablet *tablet_event;
+	struct libinput_event *event;
+	double pressure,
+	       tilt_vertical,
+	       tilt_horizontal;
+	struct axis_replacement axes[] = {
+		{ -1, -1 }
+	};
+
+	litest_drain_events(dev->libinput);
+
+	litest_tablet_normalization_min(dev, 10, 10, axes);
+	libinput_dispatch(li);
+
+	while ((event = libinput_get_event(li))) {
+		if (libinput_event_get_type(event) == LIBINPUT_EVENT_TABLET_AXIS) {
+			tablet_event = libinput_event_get_tablet_event(event);
+			pressure = libinput_event_tablet_get_axis_value(
+			    tablet_event, LIBINPUT_TABLET_AXIS_PRESSURE);
+
+			litest_assert_double_eq(pressure, 0);
+
+			if (libinput_event_tablet_axis_has_changed(
+				tablet_event,
+				LIBINPUT_TABLET_AXIS_TILT_VERTICAL)) {
+				tilt_vertical =
+					libinput_event_tablet_get_axis_value(
+					    tablet_event,
+					    LIBINPUT_TABLET_AXIS_TILT_VERTICAL);
+
+				litest_assert_double_eq(tilt_vertical, -1);
+			}
+			if (libinput_event_tablet_axis_has_changed(
+				tablet_event,
+				LIBINPUT_TABLET_AXIS_TILT_HORIZONTAL)) {
+				tilt_horizontal =
+					libinput_event_tablet_get_axis_value(
+					    tablet_event,
+					    LIBINPUT_TABLET_AXIS_TILT_HORIZONTAL);
+
+				litest_assert_double_eq(tilt_horizontal, -1);
+			}
+		}
+	}
+
+	litest_tablet_normalization_max(dev, 10, 10, axes);
+	libinput_dispatch(li);
+
+	while ((event = libinput_get_event(li))) {
+		if (libinput_event_get_type(event) == LIBINPUT_EVENT_TABLET_AXIS) {
+			tablet_event = libinput_event_get_tablet_event(event);
+			pressure = libinput_event_tablet_get_axis_value(
+			    tablet_event, LIBINPUT_TABLET_AXIS_PRESSURE);
+
+			litest_assert_double_eq(pressure, 1);
+
+			if (libinput_event_tablet_axis_has_changed(
+				tablet_event,
+				LIBINPUT_TABLET_AXIS_TILT_VERTICAL)) {
+				tilt_vertical =
+					libinput_event_tablet_get_axis_value(
+					    tablet_event,
+					    LIBINPUT_TABLET_AXIS_TILT_VERTICAL);
+
+				litest_assert_double_eq(tilt_vertical, 1);
+			}
+			if (libinput_event_tablet_axis_has_changed(
+				tablet_event,
+				LIBINPUT_TABLET_AXIS_TILT_HORIZONTAL)) {
+				tilt_horizontal =
+					libinput_event_tablet_get_axis_value(
+					    tablet_event,
+					    LIBINPUT_TABLET_AXIS_TILT_HORIZONTAL);
+
+				litest_assert_double_eq(tilt_horizontal, 1);
+			}
+		}
+	}
+}
+END_TEST
+
 int
 main(int argc, char **argv)
 {
 	litest_add("tablet:proximity-in-out", proximity_in_out, LITEST_TABLET, LITEST_ANY);
 	litest_add("tablet:motion", motion, LITEST_TABLET, LITEST_ANY);
 	litest_add("tablet:bad-distance-events", bad_distance_events, LITEST_TABLET | LITEST_DISTANCE, LITEST_ANY);
+	litest_add("tablet:normalization", normalization, LITEST_TABLET, LITEST_ANY);
 
 	return litest_run(argc, argv);
 }
