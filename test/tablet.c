@@ -373,13 +373,13 @@ START_TEST(normalization)
 		litest_event(dev,
 			     EV_ABS,
 			     ABS_TILT_X,
-			     tilt_vertical_absinfo->maximum);
+			     tilt_vertical_absinfo->maximum + 1);
 
 	if (tilt_horizontal_absinfo != NULL)
 		litest_event(dev,
 			     EV_ABS,
 			     ABS_TILT_Y,
-			     tilt_horizontal_absinfo->maximum);
+			     tilt_horizontal_absinfo->maximum + 1);
 
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 
