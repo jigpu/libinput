@@ -216,7 +216,8 @@ enum libinput_tablet_axis {
 	LIBINPUT_TABLET_AXIS_PRESSURE = 3,
 	LIBINPUT_TABLET_AXIS_TILT_X = 4,
 	LIBINPUT_TABLET_AXIS_TILT_Y = 5,
-	LIBINPUT_TABLET_AXIS_CNT = LIBINPUT_TABLET_AXIS_TILT_Y + 1
+	LIBINPUT_TABLET_AXIS_TWIST = 6,
+	LIBINPUT_TABLET_AXIS_CNT = LIBINPUT_TABLET_AXIS_TWIST + 1
 };
 
 /**
@@ -912,6 +913,8 @@ libinput_event_tablet_axis_has_changed(struct libinput_event_tablet *event,
  * - @ref LIBINPUT_TABLET_AXIS_TILT_X and @ref LIBINPUT_TABLET_AXIS_TILT_Y -
  *   normalized value between -1 and 1 that indicates the X or Y tilt of the
  *   tool
+ * - @ref LIBINPUT_TABLET_AXIS_TWIST - normalized value between -1 and 1
+ *   that indicates the rotation of the tool about its long axis
  *
  * @param event The libinput tablet event
  * @param axis The axis to retrieve the value of

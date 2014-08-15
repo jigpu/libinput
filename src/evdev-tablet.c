@@ -47,6 +47,7 @@ tablet_process_absolute(struct tablet_dispatch *tablet,
 	switch (e->code) {
 	case ABS_X:
 	case ABS_Y:
+	case ABS_Z:
 	case ABS_PRESSURE:
 	case ABS_TILT_X:
 	case ABS_TILT_Y:
@@ -147,6 +148,7 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 			break;
 		case LIBINPUT_TABLET_AXIS_TILT_X:
 		case LIBINPUT_TABLET_AXIS_TILT_Y:
+		case LIBINPUT_TABLET_AXIS_TWIST:
 			tablet->axes[a] = normalize_double_ended(absinfo);
 			break;
 		default:
@@ -332,6 +334,10 @@ tablet_get_tool(struct tablet_dispatch *tablet,
 				       LIBINPUT_TABLET_AXIS_TILT_Y))
 				set_bit(tool->axis_caps,
 					LIBINPUT_TABLET_AXIS_TILT_Y);
+			if (bit_is_set(tablet->axis_caps,
+				       LIBINPUT_TABLET_AXIS_TWIST))
+				set_bit(tool->axis_caps,
+					LIBINPUT_TABLET_AXIS_TWIST);
 			break;
 		default:
 			break;

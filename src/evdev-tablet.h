@@ -72,6 +72,9 @@ evcode_to_axis(const uint32_t evcode)
 	case ABS_Y:
 		axis = LIBINPUT_TABLET_AXIS_Y;
 		break;
+	case ABS_Z:
+		axis = LIBINPUT_TABLET_AXIS_TWIST;
+		break;
 	case ABS_DISTANCE:
 		axis = LIBINPUT_TABLET_AXIS_DISTANCE;
 		break;
@@ -115,6 +118,9 @@ axis_to_evcode(const enum libinput_tablet_axis axis)
 		break;
 	case LIBINPUT_TABLET_AXIS_TILT_Y:
 		evcode = ABS_TILT_Y;
+		break;
+	case LIBINPUT_TABLET_AXIS_TWIST:
+		evcode = ABS_Z;
 		break;
 	default:
 		abort();
