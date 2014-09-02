@@ -113,10 +113,10 @@ tp_tap_notify(struct tp_dispatch *tp,
 		return;
 	}
 
-	pointer_notify_button(&tp->device->base,
-			      time,
-			      button,
-			      state);
+	evdev_pointer_notify_button(tp->device,
+				    time,
+				    button,
+				    state);
 }
 
 static void
@@ -253,6 +253,7 @@ tp_tap_touch2_handle_event(struct tp_dispatch *tp,
 		break;
 	case TAP_EVENT_MOTION:
 		tp_tap_clear_timer(tp);
+		/* fallthrough */
 	case TAP_EVENT_TIMEOUT:
 		tp->tap.state = TAP_STATE_TOUCH_2_HOLD;
 		break;
@@ -616,7 +617,7 @@ static int
 tp_tap_config_count(struct libinput_device *device)
 {
 	struct evdev_dispatch *dispatch;
-	struct tp_dispatch *tp;
+	struct tp_dispatch *tp = NULL;
 
 	dispatch = ((struct evdev_device *) device)->dispatch;
 	tp = container_of(dispatch, tp, base);
@@ -625,32 +626,34 @@ tp_tap_config_count(struct libinput_device *device)
 }
 
 static enum libinput_config_status
-tp_tap_config_set_enabled(struct libinput_device *device, int enabled)
+tp_tap_config_set_enabled(struct libinput_device *device,
+			  enum libinput_config_tap_state enabled)
 {
 	struct evdev_dispatch *dispatch;
-	struct tp_dispatch *tp;
+	struct tp_dispatch *tp = NULL;
 
 	dispatch = ((struct evdev_device *) device)->dispatch;
 	tp = container_of(dispatch, tp, base);
 
-	tp->tap.enabled = enabled;
+	tp->tap.enabled = (enabled == LIBINPUT_CONFIG_TAP_ENABLED);
 
 	return LIBINPUT_CONFIG_STATUS_SUCCESS;
 }
 
-static int
+static enum libinput_config_tap_state
 tp_tap_config_is_enabled(struct libinput_device *device)
 {
 	struct evdev_dispatch *dispatch;
-	struct tp_dispatch *tp;
+	struct tp_dispatch *tp = NULL;
 
 	dispatch = ((struct evdev_device *) device)->dispatch;
 	tp = container_of(dispatch, tp, base);
 
-	return tp->tap.enabled;
+	return tp->tap.enabled ? LIBINPUT_CONFIG_TAP_ENABLED :
+				 LIBINPUT_CONFIG_TAP_DISABLED;
 }
 
-static int
+static enum libinput_config_tap_state
 tp_tap_config_get_default(struct libinput_device *device)
 {
 	/**
@@ -662,7 +665,7 @@ tp_tap_config_get_default(struct libinput_device *device)
 	 *   usually know where to enable it, or at least you can search for
 	 *   it.
 	 */
-	return false;
+	return LIBINPUT_CONFIG_TAP_DISABLED;
 }
 
 int

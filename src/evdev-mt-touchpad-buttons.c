@@ -521,7 +521,7 @@ tp_init_buttons(struct tp_dispatch *tp,
 
 	tp->buttons.motion_dist = diagonal * DEFAULT_BUTTON_MOTION_THRESHOLD;
 
-	if (libevdev_get_id_vendor(device->evdev) == 0x5ac) /* Apple */
+	if (libevdev_get_id_vendor(device->evdev) == VENDOR_ID_APPLE)
 		tp->buttons.use_clickfinger = true;
 
 	if (tp->buttons.is_clickpad && !tp->buttons.use_clickfinger) {
@@ -542,12 +542,13 @@ tp_init_buttons(struct tp_dispatch *tp,
 
 		if (tp->buttons.has_topbuttons) {
 			/* T440s has the top button line 5mm from the top,
-			   make the buttons 6mm high */
+			   event analysis has shown events to start down to ~10mm
+			   from the top - which maps to 15% */
 			if (yres > 1) {
 				tp->buttons.top_area.bottom_edge =
-					yoffset + 6 * yres;
+					yoffset + 10 * yres;
 			} else {
-				tp->buttons.top_area.bottom_edge = height * .08 + yoffset;
+				tp->buttons.top_area.bottom_edge = height * .15 + yoffset;
 			}
 			tp->buttons.top_area.rightbutton_left_edge = width * .58 + xoffset;
 			tp->buttons.top_area.leftbutton_right_edge = width * .42 + xoffset;
@@ -606,11 +607,12 @@ tp_post_clickfinger_buttons(struct tp_dispatch *tp, uint64_t time)
 		state = LIBINPUT_BUTTON_STATE_RELEASED;
 	}
 
-	if (button)
-		pointer_notify_button(&tp->device->base,
-				      time,
-				      button,
-				      state);
+	if (button) {
+		evdev_pointer_notify_button(tp->device,
+					    time,
+					    button,
+					    state);
+	}
 	return 1;
 }
 
@@ -632,10 +634,10 @@ tp_post_physical_buttons(struct tp_dispatch *tp, uint64_t time)
 			else
 				state = LIBINPUT_BUTTON_STATE_RELEASED;
 
-			pointer_notify_button(&tp->device->base,
-					      time,
-					      button,
-					      state);
+			evdev_pointer_notify_button(tp->device,
+						    time,
+						    button,
+						    state);
 		}
 
 		button++;
@@ -707,11 +709,12 @@ tp_post_softbutton_buttons(struct tp_dispatch *tp, uint64_t time)
 
 	tp->buttons.click_pending = false;
 
-	if (button)
-		pointer_notify_button(&tp->device->base,
-				      time,
-				      button,
-				      state);
+	if (button) {
+		evdev_pointer_notify_button(tp->device,
+					    time,
+					    button,
+					    state);
+	}
 	return 1;
 }
 

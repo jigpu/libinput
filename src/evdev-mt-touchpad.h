@@ -33,6 +33,8 @@
 #define TOUCHPAD_HISTORY_LENGTH 4
 #define TOUCHPAD_MIN_SAMPLES 4
 
+#define VENDOR_ID_APPLE 0x5ac
+
 enum touchpad_event {
 	TOUCHPAD_EVENT_NONE		= 0,
 	TOUCHPAD_EVENT_MOTION		= (1 << 0),
@@ -101,7 +103,6 @@ struct tp_touch {
 	struct tp_dispatch *tp;
 	enum touch_state state;
 	bool dirty;
-	bool fake;				/* a fake touch */
 	bool is_pointer;			/* the pointer-controlling touch */
 	int32_t x;
 	int32_t y;
@@ -151,10 +152,13 @@ struct tp_dispatch {
 	struct evdev_dispatch base;
 	struct evdev_device *device;
 	unsigned int nfingers_down;		/* number of fingers down */
+	unsigned int old_nfingers_down;		/* previous no fingers down */
 	unsigned int slot;			/* current slot */
 	bool has_mt;
+	bool semi_mt;
 
-	unsigned int ntouches;			/* number of slots */
+	unsigned int real_touches;		/* number of slots */
+	unsigned int ntouches;			/* no slots inc. fakes */
 	struct tp_touch *touches;		/* len == ntouches */
 	unsigned int fake_touches;		/* fake touch mask */
 
