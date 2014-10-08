@@ -104,7 +104,7 @@ tablet_update_tool(struct tablet_dispatch *tablet,
 }
 
 static inline double
-normalize_pressure_or_dist(const struct input_absinfo * absinfo) {
+normalize_single_ended(const struct input_absinfo * absinfo) {
 	double range = absinfo->maximum - absinfo->minimum + 1;
 	double value = (absinfo->value - absinfo->minimum) / range;
 
@@ -112,12 +112,9 @@ normalize_pressure_or_dist(const struct input_absinfo * absinfo) {
 }
 
 static inline double
-normalize_tilt(const struct input_absinfo * absinfo) {
-	double range = absinfo->maximum - absinfo->minimum + 1;
-	double value = (absinfo->value - absinfo->minimum) / range;
-
-	/* Map to the (-1, 1) range */
-	return (value * 2) - 1;
+normalize_double_ended(const struct input_absinfo * absinfo) {
+	/* Map from (0, 1) to the (-1, 1) range */
+	return (normalize_single_ended(absinfo) * 2) - 1;
 }
 
 static void
@@ -146,11 +143,11 @@ tablet_check_notify_axes(struct tablet_dispatch *tablet,
 			break;
 		case LIBINPUT_TABLET_AXIS_DISTANCE:
 		case LIBINPUT_TABLET_AXIS_PRESSURE:
-			tablet->axes[a] = normalize_pressure_or_dist(absinfo);
+			tablet->axes[a] = normalize_single_ended(absinfo);
 			break;
 		case LIBINPUT_TABLET_AXIS_TILT_X:
 		case LIBINPUT_TABLET_AXIS_TILT_Y:
-			tablet->axes[a] = normalize_tilt(absinfo);
+			tablet->axes[a] = normalize_double_ended(absinfo);
 			break;
 		default:
 			log_bug_libinput(device->base.seat->libinput,
