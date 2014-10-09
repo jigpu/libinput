@@ -36,6 +36,7 @@ static void litest_wacom_intuos_tablet_setup(void)
 static struct input_event proximity_in[] = {
 	{ .type = EV_ABS, .code = ABS_X, .value = LITEST_AUTO_ASSIGN },
 	{ .type = EV_ABS, .code = ABS_Y, .value = LITEST_AUTO_ASSIGN },
+	{ .type = EV_ABS, .code = ABS_Z, .value = LITEST_AUTO_ASSIGN },
 	{ .type = EV_ABS, .code = ABS_DISTANCE, .value = LITEST_AUTO_ASSIGN },
 	{ .type = EV_ABS, .code = ABS_TILT_X, .value = LITEST_AUTO_ASSIGN },
 	{ .type = EV_ABS, .code = ABS_TILT_Y, .value = LITEST_AUTO_ASSIGN },
@@ -49,6 +50,7 @@ static struct input_event proximity_in[] = {
 static struct input_event proximity_out[] = {
 	{ .type = EV_ABS, .code = ABS_X, .value = 0 },
 	{ .type = EV_ABS, .code = ABS_Y, .value = 0 },
+	{ .type = EV_ABS, .code = ABS_Z, .value = 0 },
 	{ .type = EV_ABS, .code = ABS_DISTANCE, .value = 0 },
 	{ .type = EV_ABS, .code = ABS_TILT_X, .value = 0 },
 	{ .type = EV_ABS, .code = ABS_TILT_Y, .value = 0 },
@@ -62,6 +64,7 @@ static struct input_event proximity_out[] = {
 static struct input_event motion[] = {
 	{ .type = EV_ABS, .code = ABS_X, .value = LITEST_AUTO_ASSIGN },
 	{ .type = EV_ABS, .code = ABS_Y, .value = LITEST_AUTO_ASSIGN },
+	{ .type = EV_ABS, .code = ABS_Z, .value = LITEST_AUTO_ASSIGN },
 	{ .type = EV_ABS, .code = ABS_DISTANCE, .value = LITEST_AUTO_ASSIGN },
 	{ .type = EV_ABS, .code = ABS_PRESSURE, .value = LITEST_AUTO_ASSIGN },
 	{ .type = EV_ABS, .code = ABS_TILT_X, .value = LITEST_AUTO_ASSIGN },

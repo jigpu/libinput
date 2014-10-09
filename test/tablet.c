@@ -354,16 +354,19 @@ START_TEST(normalization)
 	struct libinput_event *event;
 	double pressure,
 	       tilt_vertical,
-	       tilt_horizontal;
+	       tilt_horizontal,
+	       twist;
 	const struct input_absinfo *pressure_absinfo,
                                    *tilt_vertical_absinfo,
-                                   *tilt_horizontal_absinfo;
+                                   *tilt_horizontal_absinfo,
+                                   *twist_absinfo;
 
 	litest_drain_events(dev->libinput);
 
 	pressure_absinfo = libevdev_get_abs_info(dev->evdev, ABS_PRESSURE);
 	tilt_vertical_absinfo = libevdev_get_abs_info(dev->evdev, ABS_TILT_X);
 	tilt_horizontal_absinfo = libevdev_get_abs_info(dev->evdev, ABS_TILT_Y);
+	twist_absinfo = libevdev_get_abs_info(dev->evdev, ABS_Z);
 
 	/* Test minimum */
 	if (pressure_absinfo != NULL)
@@ -383,6 +386,12 @@ START_TEST(normalization)
 			     EV_ABS,
 			     ABS_TILT_Y,
 			     tilt_horizontal_absinfo->minimum);
+
+	if (twist_absinfo != NULL)
+		litest_event(dev,
+			     EV_ABS,
+			     ABS_Z,
+			     twist_absinfo->minimum);
 
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 
@@ -422,6 +431,17 @@ START_TEST(normalization)
 
 				litest_assert_double_eq(tilt_horizontal, -1);
 			}
+
+			if (libinput_event_tablet_axis_has_changed(
+				tablet_event,
+				LIBINPUT_TABLET_AXIS_TWIST)) {
+				twist =
+					libinput_event_tablet_get_axis_value(
+					    tablet_event,
+					    LIBINPUT_TABLET_AXIS_TWIST);
+
+				litest_assert_double_eq(twist, -1);
+			}
 		}
 
 		libinput_event_destroy(event);
@@ -445,6 +465,12 @@ START_TEST(normalization)
 			     EV_ABS,
 			     ABS_TILT_Y,
 			     tilt_horizontal_absinfo->maximum + 1);
+
+	if (twist_absinfo != NULL)
+		litest_event(dev,
+			     EV_ABS,
+			     ABS_Z,
+			     twist_absinfo->maximum + 1);
 
 	litest_event(dev, EV_SYN, SYN_REPORT, 0);
 
@@ -483,6 +509,17 @@ START_TEST(normalization)
 					    LIBINPUT_TABLET_AXIS_TILT_Y);
 
 				litest_assert_double_eq(tilt_horizontal, 1);
+			}
+
+			if (libinput_event_tablet_axis_has_changed(
+				tablet_event,
+				LIBINPUT_TABLET_AXIS_TWIST)) {
+				twist =
+					libinput_event_tablet_get_axis_value(
+					    tablet_event,
+					    LIBINPUT_TABLET_AXIS_TWIST);
+
+				litest_assert_double_eq(twist, 1);
 			}
 		}
 
