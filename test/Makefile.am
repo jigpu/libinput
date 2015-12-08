@@ -69,7 +69,8 @@ run_tests = \
 	test-log \
 	test-misc \
 	test-keyboard \
-	test-litest-selftest
+	test-litest-selftest \
+	test-file
 
 build_tests = \
 	test-build-cxx \
@@ -82,6 +83,10 @@ noinst_SCRIPTS = symbols-leak-test
 TESTS = $(run_tests) symbols-leak-test
 
 .NOTPARALLEL:
+
+test_file_SOURCES = file.c
+test_file_LDADD = $(TEST_LIBS)
+test_file_LDFLAGS = -no-install
 
 test_udev_SOURCES = udev.c
 test_udev_LDADD = $(TEST_LIBS)
